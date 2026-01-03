@@ -1,68 +1,71 @@
 import streamlit as st
 
-# --- 1. YATAY & MODERN GİRİŞ TASARIMI ---
+# --- 1. STANDART MODERN GİRİŞ TASARIMI ---
 def check_password():
     if "password_correct" not in st.session_state:
-        # Sayfayı yatayda genişleten ve estetik katan CSS
         st.markdown("""
             <style>
-            .stApp { background-color: #F0F7FF; }
+            /* Arka plan: Gözü yormayan açık gri/mavi */
+            .stApp { background-color: #F8FAFC; }
             header {visibility: hidden;}
             
-            /* Yatay Kart Tasarımı */
-            .login-horizontal-card {
+            /* Ana Kapsül: Standart 400px genişlik (UI Standardı) */
+            .auth-container {
+                max-width: 400px;
+                margin: 80px auto;
                 background: white;
                 padding: 40px;
-                border-radius: 24px;
-                box-shadow: 0 12px 40px rgba(0,0,0,0.06);
-                max-width: 500px; /* Kartı yatayda genişlettik */
-                margin: auto;
+                border-radius: 20px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+                border: 1px solid #EDF2F7;
                 text-align: center;
-                border: 1px solid #E2E8F0;
             }
             
-            /* Giriş Alanlarını Genişlet */
-            .stTextInput, .stButton button {
+            /* Input ve Butonları kutuyla %100 eşitle */
+            div[data-testid="stVerticalBlock"] > div {
                 width: 100% !important;
-                border-radius: 12px !important;
+            }
+            
+            .stTextInput input {
+                border-radius: 10px !important;
+                height: 45px !important;
             }
             
             .stButton button {
+                width: 100% !important;
+                border-radius: 10px !important;
+                height: 48px !important;
                 background-color: #2563EB !important;
                 color: white !important;
                 font-weight: 600 !important;
-                padding: 10px !important;
+                border: none !important;
                 margin-top: 10px;
             }
             </style>
         """, unsafe_allow_html=True)
 
-        # Sayfayı dikeyde ortala
-        st.write("##")
-        st.write("##")
+        # Görsel hiyerarşiyi tek bir div içinde topluyoruz
+        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+        
+        # Logo ve Metinler
+        st.markdown("""
+            <div style="margin-bottom: 30px;">
+                <span style="font-size: 50px;">🏥</span>
+                <h2 style="color: #1E3A8A; margin: 10px 0 5px 0; font-family: sans-serif;">Klinik 2026</h2>
+                <p style="color: #64748B; font-size: 14px;">Lütfen erişim şifresini giriniz</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-        col1, col2, col3 = st.columns([0.5, 1, 0.5])
+        # Giriş Elemanları (Konteynır içinde)
+        pwd = st.text_input("Şifre", type="password", placeholder="Şifre...", label_visibility="collapsed")
+        if st.button("Sisteme Giriş Yap"):
+            if pwd == "klinik2026":
+                st.session_state.password_correct = True
+                st.rerun()
+            else:
+                st.error("❌ Hatalı şifre!")
         
-        with col2:
-            # Tüm içeriği tek bir beyaz kutuda birleştiriyoruz
-            st.markdown("""
-                <div class="login-horizontal-card">
-                    <div style="font-size: 50px; margin-bottom: 10px;">🏥</div>
-                    <h2 style="color: #1E3A8A; font-family: sans-serif; margin-bottom: 0px;">Klinik 2026</h2>
-                    <p style="color: #64748B; font-size: 15px; margin-bottom: 30px;">Yönetim Paneline Giriş Yapın</p>
-            """, unsafe_allow_html=True)
-            
-            # Form bileşenleri kartın içinde kalacak şekilde yerleşiyor
-            pwd = st.text_input("Şifre", type="password", placeholder="Erişim şifresini yazın...", label_visibility="collapsed")
-            if st.button("Sisteme Giriş Yap"):
-                if pwd == "klinik2026":
-                    st.session_state.password_correct = True
-                    st.rerun()
-                else:
-                    st.error("❌ Hatalı şifre, lütfen kontrol edin.")
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-        
+        st.markdown('</div>', unsafe_allow_html=True)
         return False
     return True
 
@@ -70,7 +73,6 @@ def check_password():
 st.set_page_config(page_title="Klinik 2026 Pro", layout="wide", page_icon="🏥")
 
 if check_password():
-    # Başarılı girişte görünecek olan ana panel CSS'i
     st.markdown("""
         <style>
         .stApp { background-color: #F8FAFC; }
@@ -79,5 +81,4 @@ if check_password():
     """, unsafe_allow_html=True)
     
     st.markdown("<h1 style='color: #1E3A8A;'>🏢 Yönetim Paneli</h1>", unsafe_allow_html=True)
-    st.success("Giriş başarılı. Verileriniz yükleniyor...")
-    # Buradan sonra v28'deki tablo ve grafik kodlarını ekleyebilirsiniz.
+    st.info("Klinik finansal verileri başarıyla yüklendi.")
