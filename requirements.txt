@@ -1,3 +1,6 @@
+plotly
+streamlit
 gspread
-pandas
 google-auth
+pandas
+requests
