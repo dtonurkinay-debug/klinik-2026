@@ -13,7 +13,7 @@ def get_gspread_client():
     return gspread.authorize(creds)
 
 # Google Sheet ID'nizi buraya yazacağız
-SHEET_ID = "BURAYA_SHEET_ID_GELECEK" 
+SHEET_ID = "1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM" 
 
 def load_data():
     client = get_gspread_client()
