@@ -45,7 +45,7 @@ def get_exchange_rates():
                 rates[code] = float(currency.find('ForexBuying').text)
         return rates
     except:
-        return {'TRY': 1.0, 'USD': 30.0, 'EUR': 33.0}
+        return {'TRY': 1.0, 'USD': 30.00, 'EUR': 33.00}
 
 def get_gspread_client():
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
@@ -59,19 +59,23 @@ def load_data():
     df['Tarih_DT'] = pd.to_datetime(df['Tarih'], errors='coerce')
     df['Tutar'] = pd.to_numeric(df['Tutar'], errors='coerce').fillna(0)
     
-    # Sıralama: Tarih -> Yaratma Tarihi -> Yaratma Saati
     sort_cols = ['Tarih_DT']
     if 'Yaratma Tarihi' in df.columns: sort_cols.append('Yaratma Tarihi')
     if 'Yaratma Saati' in df.columns: sort_cols.append('Yaratma Saati')
     df = df.sort_values(by=sort_cols, ascending=True)
     return df, sheet
 
-# Sayı Formatlama (Tam Sayı & Nokta Ayırıcı)
+# --- FORMATLAYICILAR ---
 def format_int(value):
+    """Tam sayıları binlik ayırıcı ile formatlar: 10.500"""
     return f"{int(round(value)):,}".replace(",", ".")
 
+def format_rate(value):
+    """Kurları ondalıklı ve virgüllü formatlar: 30,45"""
+    return f"{value:.2f}".replace(".", ",")
+
 # --- ANA PROGRAM ---
-st.set_page_config(page_title="Klinik 2026 Pro v17", layout="wide")
+st.set_page_config(page_title="Klinik 2026 Pro v18", layout="wide")
 
 if check_password():
     df_raw, worksheet = load_data()
@@ -86,20 +90,19 @@ if check_password():
     secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
     secilen_ay_no = aylar.index(secilen_ay_adi) + 1
 
-    # UPB ve Kümülatif Hesaplama
     df['UPB_TRY'] = df.apply(lambda r: float(r['Tutar']) * kurlar.get(r['Para Birimi'], 1.0), axis=1)
     df_kumulatif = df[df['Tarih_DT'].dt.month <= secilen_ay_no].copy()
     
     t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
     t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
 
-    # ÜST ÖZET (Tam Sayı)
+    # ÜST ÖZET
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric(f"Ocak-{secilen_ay_adi} Gelir", f"{format_int(t_gelir)} ₺")
     m2.metric(f"Ocak-{secilen_ay_adi} Gider", f"{format_int(t_gider)} ₺")
     m3.metric("Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
-    m4.metric("USD Kuru", f"{format_int(kurlar['USD'])} ₺")
-    m5.metric("EUR Kuru", f"{format_int(kurlar['EUR'])} ₺")
+    m4.metric("USD Kuru", f"{format_rate(kurlar['USD'])} ₺") # Ondalıklı
+    m5.metric("EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺") # Ondalıklı
 
     st.divider()
 
@@ -113,7 +116,6 @@ if check_password():
         if search_term:
             df_display = df_display[df_display.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)]
 
-        # Tablo Görünümü
         c = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
         heads = ["ID", "Tarih", "Tür", "Hasta Adi", "Kat.", "Döv", "Tutar", "UPB (TL)", "Tekn.", "Açıklama", "İşlem"]
         for col, h in zip(c, heads): col.markdown(f"**{h}**")
@@ -127,8 +129,8 @@ if check_password():
             r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
             r[2].markdown(f"<span style='color:{color}; font-weight:bold;'>{row.iloc[2]}</span>", unsafe_allow_html=True)
             r[3].write(row.iloc[3]); r[4].write(row.iloc[4]); r[5].write(row.iloc[5])
-            r[6].write(format_int(float(row.iloc[6])))
-            r[7].write(format_int(row['UPB_TRY']))
+            r[6].write(format_int(float(row.iloc[6]))) # Tam Sayı
+            r[7].write(format_int(row['UPB_TRY']))     # Tam Sayı
             r[8].write(row.iloc[7]); r[9].write(row.iloc[8])
             
             btn_e, btn_d = r[10].columns(2)
@@ -160,7 +162,7 @@ if check_password():
 
     with col_side:
         st.subheader("➕ Yeni Kayıt")
-        with st.form("form_v17", clear_on_submit=True):
+        with st.form("form_v18", clear_on_submit=True):
             f_tar = st.date_input("Tarih", date.today(), format="DD.MM.YYYY")
             f_tur = st.selectbox("Tür", ["Gelir", "Gider"])
             f_hast = st.text_input("Hasta/Cari")
@@ -173,7 +175,7 @@ if check_password():
             if st.form_submit_button("Ekle"):
                 now = datetime.now()
                 y_tarih = now.strftime("%Y-%m-%d")
-                y_saat = now.strftime("%H:%M:%S") # HATA BURADAYDI, DÜZELTİLDİ
+                y_saat = now.strftime("%H:%M:%S")
                 try: next_id = int(pd.to_numeric(df_raw.iloc[:, 0]).max() + 1)
                 except: next_id = 1
                 worksheet.append_row([next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, int(f_tut), f_tekn, f_acik, "", y_tarih, y_saat])
