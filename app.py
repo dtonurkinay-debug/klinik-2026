@@ -6,7 +6,7 @@ from datetime import date
 
 # --- 1. GÜVENLİK AYARI (Şifre) ---
 PASSWORD = "klinik2026" # Burayı istediğin zaman değiştirebilirsin
-
+# 
 def check_password():
     if "password_correct" not in st.session_state:
         st.title("🔐 Klinik 2026 Girişi")
