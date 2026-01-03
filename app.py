@@ -4,7 +4,7 @@ import gspread
 import pandas as pd
 from datetime import date
 
-# --- GÜVENLİK ---
+# --- 1. GÜVENLİK ---
 PASSWORD = "klinik2026"
 
 def check_password():
@@ -20,7 +20,7 @@ def check_password():
         return False
     return True
 
-# --- BAĞLANTI ---
+# --- 2. BAĞLANTI ---
 def get_gspread_client():
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
@@ -33,6 +33,8 @@ def load_data():
     sheet = client.open_by_key(SHEET_ID).sheet1
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
+    # Sütun isimlerini standardize et (Boşlukları sil)
+    df.columns = df.columns.str.strip()
     if 'Silindi' not in df.columns: df['Silindi'] = ""
     return df, sheet
 
@@ -46,8 +48,8 @@ if check_password():
     st.title("📊 Klinik 2026 Yönetim Paneli")
 
     # METRİKLER
-    t_gelir = pd.to_numeric(df_visible[df_visible['Islem Turu'] == 'Gelir']['Tutar']).sum()
-    t_gider = pd.to_numeric(df_visible[df_visible['Islem Turu'] == 'Gider']['Tutar']).sum()
+    t_gelir = pd.to_numeric(df_visible[df_visible['Islem Turu'] == 'Gelir']['Tutar'], errors='coerce').sum()
+    t_gider = pd.to_numeric(df_visible[df_visible['Islem Turu'] == 'Gider']['Tutar'], errors='coerce').sum()
     m1, m2, m3 = st.columns(3)
     m1.metric("Toplam Gelir", f"{t_gelir:,.2f} ₺")
     m2.metric("Toplam Gider", f"{t_gider:,.2f} ₺")
@@ -58,54 +60,22 @@ if check_password():
     col_main, col_side = st.columns([3, 1])
 
     with col_main:
-        st.subheader("📑 Güncel Hareketler")
+        st.subheader("📑 İşlem Listesi")
         
-        # BAŞLIK SATIRI
-        h1, h2, h3, h4, h5 = st.columns([0.5, 2, 1, 1, 1.5])
-        h1.write("**ID**")
-        h2.write("**Hasta Adı**")
-        h3.write("**Tutar**")
-        h4.write("**Tür**")
-        h5.write("**İşlemler**")
+        # TABLO BAŞLIKLARI
+        c1, c2, c3, c4, c5 = st.columns([0.5, 2.5, 1.2, 1, 1.5])
+        c1.write("**ID**")
+        c2.write("**Hasta Adı**")
+        c3.write("**Tutar**")
+        c4.write("**Tür**")
+        c5.write("**İşlemler**")
         st.divider()
 
-        # SATIRLAR VE BUTONLAR
+        # HER SATIR İÇİN DÖNGÜ VE BUTONLAR
         for index, row in df_visible.iterrows():
-            r1, r2, r3, r4, r5, r6 = st.columns([0.5, 2, 1, 1, 0.7, 0.8])
-            r1.write(row['ID'])
-            r2.write(row['Hasta Adi'])
-            r3.write(f"{row['Tutar']} {row['Para Birimi']}")
-            r4.write(row['Islem Turu'])
+            r1, r2, r3, r4, r5, r6 = st.columns([0.5, 2.5, 1.2, 1, 0.7, 0.8])
             
-            # DÜZENLEME BUTONU
-            if r5.button("✏️", key=f"edit_{row['ID']}"):
-                @st.dialog(f"Düzenle: ID {row['ID']}")
-                def edit_dialog(item):
-                    new_cari = st.text_input("Hasta/Cari", value=item['Hasta Adi'])
-                    new_tutar = st.number_input("Tutar", value=float(item['Tutar']))
-                    if st.button("Kaydet"):
-                        row_idx = df[df['ID'] == item['ID']].index[0] + 2
-                        worksheet.update_cell(row_idx, 4, new_cari)
-                        worksheet.update_cell(row_idx, 7, new_tutar)
-                        st.success("Güncellendi!")
-                        st.rerun()
-                edit_dialog(row)
-
-            # SİLME BUTONU
-            if r6.button("🗑️", key=f"del_{row['ID']}"):
-                @st.dialog("Kaydı Sil")
-                def delete_dialog(item):
-                    st.warning(f"{item['Hasta Adi']} silinecek. Emin misiniz?")
-                    if st.button("Evet, Sil"):
-                        row_idx = df[df['ID'] == item['ID']].index[0] + 2
-                        worksheet.update_cell(row_idx, 10, "X")
-                        st.rerun()
-                delete_dialog(row)
-
-    with col_side:
-        st.subheader("➕ Yeni Kayıt")
-        with st.form("yeni_form", clear_on_submit=True):
-            f_tarih = st.date_input("Tarih", date.today())
-            f_tur = st.selectbox("Tür", ["Gelir", "Gider"])
-            f_cari = st.text_input("Hasta/Cari")
-            f_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Diğer"])
+            r1.write(f"#{row['ID']}")
+            # Sütun ismi 'Hasta Adi' mi yoksa 'Hasta Adı' mı kontrolü
+            h_adi = row.get('Hasta Adi', row.get('Hasta Adı', 'Belirtilmedi'))
+            r2.write(h_adi)
