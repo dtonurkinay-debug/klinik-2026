@@ -65,17 +65,14 @@ def load_data():
     df = df.sort_values(by=sort_cols, ascending=True)
     return df, sheet
 
-# --- FORMATLAYICILAR ---
 def format_int(value):
-    """Tam sayıları binlik ayırıcı ile formatlar: 10.500"""
     return f"{int(round(value)):,}".replace(",", ".")
 
 def format_rate(value):
-    """Kurları ondalıklı ve virgüllü formatlar: 30,45"""
     return f"{value:.2f}".replace(".", ",")
 
 # --- ANA PROGRAM ---
-st.set_page_config(page_title="Klinik 2026 Pro v18", layout="wide")
+st.set_page_config(page_title="Klinik 2026 Pro v19", layout="wide")
 
 if check_password():
     df_raw, worksheet = load_data()
@@ -96,13 +93,12 @@ if check_password():
     t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
     t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
 
-    # ÜST ÖZET
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric(f"Ocak-{secilen_ay_adi} Gelir", f"{format_int(t_gelir)} ₺")
     m2.metric(f"Ocak-{secilen_ay_adi} Gider", f"{format_int(t_gider)} ₺")
     m3.metric("Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
-    m4.metric("USD Kuru", f"{format_rate(kurlar['USD'])} ₺") # Ondalıklı
-    m5.metric("EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺") # Ondalıklı
+    m4.metric("USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+    m5.metric("EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
 
     st.divider()
 
@@ -129,8 +125,8 @@ if check_password():
             r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
             r[2].markdown(f"<span style='color:{color}; font-weight:bold;'>{row.iloc[2]}</span>", unsafe_allow_html=True)
             r[3].write(row.iloc[3]); r[4].write(row.iloc[4]); r[5].write(row.iloc[5])
-            r[6].write(format_int(float(row.iloc[6]))) # Tam Sayı
-            r[7].write(format_int(row['UPB_TRY']))     # Tam Sayı
+            r[6].write(format_int(float(row.iloc[6])))
+            r[7].write(format_int(row['UPB_TRY']))
             r[8].write(row.iloc[7]); r[9].write(row.iloc[8])
             
             btn_e, btn_d = r[10].columns(2)
@@ -145,11 +141,15 @@ if check_password():
                     n_tut = st.number_input("Tutar", value=int(float(r_data.iloc[6])), step=1)
                     n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
                     n_acik = st.text_area("Açıklama", value=r_data.iloc[8])
+                    
                     if st.button("Kaydet"):
-                        idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
-                        new_row = [r_data.iloc[0], str(n_tar), n_tur, n_hast, n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]
-                        worksheet.update(f"A{idx}:J{idx}", [new_row])
-                        st.rerun()
+                        if n_tut <= 0: # 0 TUTAR KONTROLÜ
+                            st.error("Tutar 0'dan büyük olmalıdır!")
+                        else:
+                            idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
+                            new_row = [r_data.iloc[0], str(n_tar), n_tur, n_hast, n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]
+                            worksheet.update(f"A{idx}:J{idx}", [new_row])
+                            st.rerun()
                 edit_modal(row)
 
             if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
@@ -162,7 +162,7 @@ if check_password():
 
     with col_side:
         st.subheader("➕ Yeni Kayıt")
-        with st.form("form_v18", clear_on_submit=True):
+        with st.form("form_v19", clear_on_submit=True):
             f_tar = st.date_input("Tarih", date.today(), format="DD.MM.YYYY")
             f_tur = st.selectbox("Tür", ["Gelir", "Gider"])
             f_hast = st.text_input("Hasta/Cari")
@@ -173,10 +173,13 @@ if check_password():
             f_acik = st.text_input("Açıklama")
             
             if st.form_submit_button("Ekle"):
-                now = datetime.now()
-                y_tarih = now.strftime("%Y-%m-%d")
-                y_saat = now.strftime("%H:%M:%S")
-                try: next_id = int(pd.to_numeric(df_raw.iloc[:, 0]).max() + 1)
-                except: next_id = 1
-                worksheet.append_row([next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, int(f_tut), f_tekn, f_acik, "", y_tarih, y_saat])
-                st.success("Kaydedildi!"); st.rerun()
+                if f_tut <= 0: # 0 TUTAR KONTROLÜ
+                    st.error("Tutar 0 olamaz!")
+                else:
+                    now = datetime.now()
+                    y_tarih = now.strftime("%Y-%m-%d")
+                    y_saat = now.strftime("%H:%M:%S")
+                    try: next_id = int(pd.to_numeric(df_raw.iloc[:, 0]).max() + 1)
+                    except: next_id = 1
+                    worksheet.append_row([next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, int(f_tut), f_tekn, f_acik, "", y_tarih, y_saat])
+                    st.success("Kaydedildi!"); st.rerun()
