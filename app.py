@@ -36,12 +36,11 @@ def load_data():
     return df, sheet
 
 # --- ANA PROGRAM ---
-st.set_page_config(page_title="Klinik 2026 Pro v10", layout="wide")
+st.set_page_config(page_title="Klinik 2026 Pro v11", layout="wide")
 
 if check_password():
     df, worksheet = load_data()
     
-    # "Silindi" sütunu J (10.) sütundur.
     if "Silindi" not in df.columns:
         df["Silindi"] = ""
     
@@ -61,14 +60,10 @@ if check_password():
 
     st.divider()
 
-    # ANA DÜZEN
-    col_main, col_side = st.columns([4, 1]) # Tabloya daha fazla alan ayırdık
+    col_main, col_side = st.columns([4, 1])
 
     with col_main:
         st.subheader("📑 İşlem Listesi")
-        
-        # TÜM ALANLARI İÇEREN BAŞLIKLAR (Sütun Genişlikleri Ayarlandı)
-        # ID, Tarih, Tür, Hasta, Kat, Para, Tutar, Tek, Aciklama, İşlem
         cols = st.columns([0.4, 0.8, 0.7, 1.2, 0.8, 0.5, 0.7, 0.7, 1.2, 0.8])
         headers = ["ID", "Tarih", "Tür", "Hasta Adi", "Kat.", "Döviz", "Tutar", "Tekn.", "Açıklama", "İşlem"]
         for col, head in zip(cols, headers):
@@ -77,39 +72,57 @@ if check_password():
 
         for index, row in df_visible.iterrows():
             r = st.columns([0.4, 0.8, 0.7, 1.2, 0.8, 0.5, 0.7, 0.7, 1.2, 0.8])
+            r[0].write(row.iloc[0])
+            r[1].write(row.iloc[1])
+            r[2].write(row.iloc[2])
+            r[3].write(row.iloc[3])
+            r[4].write(row.iloc[4])
+            r[5].write(row.iloc[5])
+            r[6].write(row.iloc[6])
+            r[7].write(row.iloc[7])
+            r[8].write(row.iloc[8])
             
-            # Veri Gösterimi
-            r[0].write(row.iloc[0]) # ID
-            r[1].write(row.iloc[1]) # Tarih
-            r[2].write(row.iloc[2]) # Tür
-            r[3].write(row.iloc[3]) # Hasta Adi
-            r[4].write(row.iloc[4]) # Kategori
-            r[5].write(row.iloc[5]) # Para Birimi
-            r[6].write(row.iloc[6]) # Tutar
-            r[7].write(row.iloc[7]) # Teknisyen
-            r[8].write(row.iloc[8]) # Aciklama
-            
-            # BUTONLAR (✏️ ve 🗑️)
             btn_e, btn_d = r[9].columns(2)
             
+            # --- DÜZENLEME POP-UP (TAM LİSTE) ---
             if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
-                @st.dialog(f"Düzenle: {row.iloc[3]}")
+                @st.dialog(f"Kayıt Düzenle (ID: {row.iloc[0]})")
                 def edit_modal(r_data):
-                    new_h = st.text_input("Hasta Adi", value=r_data.iloc[3])
-                    new_t = st.number_input("Tutar", value=float(r_data.iloc[6]))
-                    new_a = st.text_area("Açıklama", value=r_data.iloc[8])
-                    if st.button("Kaydet"):
+                    st.info(f"Düzenlenen Kayıt ID: {r_data.iloc[0]}") # Only-view ID
+                    
+                    # Düzenlenebilir Alanlar
+                    n_tarih = st.date_input("Tarih", value=pd.to_datetime(r_data.iloc[1]))
+                    n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], index=0 if r_data.iloc[2]=="Gelir" else 1)
+                    n_hasta = st.text_input("Hasta/Cari Adı", value=r_data.iloc[3])
+                    n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"], index=0)
+                    n_doviz = st.selectbox("Para Birimi", ["TRY", "USD", "EUR"], index=0 if r_data.iloc[5]=="TRY" else 1)
+                    n_tutar = st.number_input("Tutar", value=float(r_data.iloc[6]))
+                    n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"], index=0)
+                    n_acik = st.text_area("Açıklama", value=r_data.iloc[8])
+                    
+                    if st.button("✅ Değişiklikleri Kaydet"):
                         idx = df[df.iloc[:,0] == r_data.iloc[0]].index[0] + 2
-                        worksheet.update_cell(idx, 4, new_h)
-                        worksheet.update_cell(idx, 7, new_t)
-                        worksheet.update_cell(idx, 9, new_a)
+                        # Google Sheets Sütun Güncellemeleri
+                        updates = [
+                            {'range': f'B{idx}', 'values': [[str(n_tarih)]]},
+                            {'range': f'C{idx}', 'values': [[n_tur]]},
+                            {'range': f'D{idx}', 'values': [[n_hasta]]},
+                            {'range': f'E{idx}', 'values': [[n_kat]]},
+                            {'range': f'F{idx}', 'values': [[n_doviz]]},
+                            {'range': f'G{idx}', 'values': [[n_tutar]]},
+                            {'range': f'H{idx}', 'values': [[n_tekn]]},
+                            {'range': f'I{idx}', 'values': [[n_acik]]}
+                        ]
+                        for update in updates:
+                            worksheet.update(update['range'], update['values'])
+                        st.success("Kayıt başarıyla güncellendi!")
                         st.rerun()
                 edit_modal(row)
 
             if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
                 @st.dialog("Silme Onayı")
                 def delete_modal(r_data):
-                    st.warning(f"{r_data.iloc[3]} kaydı silinecek?")
+                    st.warning(f"{r_data.iloc[3]} (ID: {r_data.iloc[0]}) kaydı silinecek?")
                     if st.button("Evet, Sil"):
                         idx = df[df.iloc[:,0] == r_data.iloc[0]].index[0] + 2
                         worksheet.update_cell(idx, 10, "X")
@@ -133,6 +146,4 @@ if check_password():
                     next_id = int(pd.to_numeric(df.iloc[:, 0]).max() + 1)
                 except:
                     next_id = 1
-                worksheet.append_row([next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, f_tut, f_tekn, f_acik, ""])
-                st.success("Eklendi!")
-                st.rerun()
+                worksheet.append_row([next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, f_tut, f_tekn, f_acik
