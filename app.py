@@ -4,15 +4,28 @@ import gspread
 import pandas as pd
 from datetime import date
 
-# --- GOOGLE SHEETS BAĞLANTISI ---
-# Bu kısım GitHub Secrets üzerinden gelecek, şimdilik altyapıyı kuruyoruz
+# --- 1. GÜVENLİK AYARI (Şifre) ---
+PASSWORD = "klinik2026" # Burayı istediğin zaman değiştirebilirsin
+
+def check_password():
+    if "password_correct" not in st.session_state:
+        st.title("🔐 Klinik 2026 Girişi")
+        pwd = st.text_input("Lütfen şifreyi giriniz:", type="password")
+        if st.button("Giriş Yap"):
+            if pwd == PASSWORD:
+                st.session_state.password_correct = True
+                st.rerun()
+            else:
+                st.error("Hatalı şifre!")
+        return False
+    return True
+
+# --- 2. GOOGLE SHEETS BAĞLANTISI ---
 def get_gspread_client():
     scope = ["https://www.googleapis.com/auth/spreadsheets"]
-    # Streamlit Cloud üzerinde 'secrets' kısmına JSON içeriğini yapıştıracağız
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
     return gspread.authorize(creds)
 
-# Google Sheet ID'nizi buraya yazacağız
 SHEET_ID = "1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM" 
 
 def load_data():
@@ -21,49 +34,61 @@ def load_data():
     data = sheet.get_all_records()
     return pd.DataFrame(data), sheet
 
-# --- ARAYÜZ ---
-st.set_page_config(page_title="Klinik 2026 Canlı Panel", layout="wide")
+# --- ANA PROGRAM ---
+st.set_page_config(page_title="Klinik 2026 Pro", layout="wide")
 
-try:
-    df, worksheet = load_data()
-    st.success("Veritabanı Bağlantısı Başarılı!")
-except Exception as e:
-    st.error(f"Bağlantı Bekleniyor... Lütfen kurulum adımlarını tamamlayın.")
-    st.stop()
+if check_password():
+    try:
+        df, worksheet = load_data()
+        # Tarih kolonunu düzelt
+        df['Tarih'] = pd.to_datetime(df['Tarih']).dt.date
+    except Exception as e:
+        st.error("Veritabanına bağlanılamadı. Lütfen Sheets bağlantısını kontrol edin.")
+        st.stop()
 
-# --- TASARIM VE MANTIK ---
-st.title("📊 Klinik 2026 Finans Yönetimi")
+    # --- ÜST PANEL: ÖZET METRİKLER ---
+    st.title("📊 Klinik 2026 Finansal Dashboard")
+    
+    # Hesaplamalar
+    toplam_gelir = df[df['Islem Turu'] == 'Gelir']['Tutar'].sum()
+    toplam_gider = df[df['Islem Turu'] == 'Gider']['Tutar'].sum()
+    net_bakiye = toplam_gelir - toplam_gider
 
-# Yan Panel: Veri Girişi
-st.sidebar.header("🦷 Yeni İşlem Kaydı")
-with st.sidebar.form("islem_formu"):
-    f_tarih = st.date_input("Tarih", date.today())
-    f_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"])
-    f_cari = st.text_input("Hasta / Cari Adı")
-    f_kat = st.selectbox("Kategori", ["İmplant", "Kira", "Maaş", "Laboratuvar", "Yemek", "Diğer"])
-    f_doviz = st.selectbox("Para Birimi", ["TRY", "USD", "EUR"])
-    f_tutar = st.number_input("Tutar", min_value=0.0)
-    f_tek = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
-    submit = st.form_submit_button("Google Sheets'e Kaydet")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Toplam Gelir", f"{toplam_gelir:,.2f} ₺", delta_color="normal")
+    m2.metric("Toplam Gider", f"{toplam_gider:,.2f} ₺", delta="-", delta_color="inverse")
+    m3.metric("Kasa Net Bakiye", f"{net_bakiye:,.2f} ₺")
 
-    if submit:
-        # Yeni satırı hazırla (Sheets'teki sütun sırasına göre)
-        # ID, Tarih, Islem Turu, Hasta veya Cari Adi, Kategori, Para Birimi, Tutar, Teknisyen, Aciklama
-        new_row = [
-            len(df) + 1, 
-            str(f_tarih), 
-            f_tur, 
-            f_cari, 
-            f_kat, 
-            f_doviz, 
-            float(f_tutar), 
-            f_tek, 
-            "" # Açıklama boş
-        ]
-        worksheet.append_row(new_row)
-        st.sidebar.success("Veri Sheets'e işlendi!")
-        st.rerun()
+    st.divider()
 
-# Ana Tablo Gösterimi
-st.subheader("📑 Güncel Hareketler")
-st.dataframe(df.tail(20), use_container_width=True, hide_index=True)
+    # --- ORTA PANEL: FİLTRELEME VE TABLO ---
+    col_tablo, col_form = st.columns([2, 1])
+
+    with col_tablo:
+        st.subheader("📑 Son İşlemler")
+        # Ay filtresi
+        df['Ay'] = pd.to_datetime(df['Tarih']).dt.strftime('%B')
+        aylar = ["Hepsi"] + list(df['Ay'].unique())
+        secilen_ay = st.selectbox("Ay Seçiniz:", aylar)
+        
+        filtered_df = df if secilen_ay == "Hepsi" else df[df['Ay'] == secilen_ay]
+        st.dataframe(filtered_df.drop(columns=['Ay']), use_container_width=True, hide_index=True)
+
+    with col_form:
+        st.subheader("➕ Yeni Kayıt")
+        with st.form("yeni_islem", clear_on_submit=True):
+            f_tarih = st.date_input("İşlem Tarihi", date.today())
+            f_tur = st.selectbox("Tür", ["Gelir", "Gider"])
+            f_cari = st.text_input("Hasta / Cari Adı")
+            f_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Kira", "Maaş", "Laboratuvar", "Diğer"])
+            f_doviz = st.selectbox("Döviz", ["TRY", "USD", "EUR"])
+            f_tutar = st.number_input("Tutar", min_value=0.0, step=100.0)
+            f_tek = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
+            
+            if st.form_submit_button("Sisteme İşle"):
+                new_row = [len(df)+1, str(f_tarih), f_tur, f_cari, f_kat, f_doviz, f_tutar, f_tek, " Uygulama üzerinden eklendi"]
+                worksheet.append_row(new_row)
+                st.success("Başarıyla kaydedildi!")
+                st.rerun()
+
+    st.info("💡 İpucu: Tablodaki sütun başlıklarına tıklayarak sıralama yapabilirsiniz.")
