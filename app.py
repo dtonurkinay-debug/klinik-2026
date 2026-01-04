@@ -199,7 +199,7 @@ if check_password():
             f_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
             f_acik = st.text_input("Açıklama")
             
-            submitted = st.form_submit_button("Ekle", use_container_width=True)
+            submitted = st.form_submit_button("Kaydet", use_container_width=True)
             if submitted:
                 if f_tut <= 0:
                     st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
