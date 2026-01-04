@@ -178,16 +178,27 @@ def load_custom_css():
         [data-testid="stMarkdownContainer"] strong {
             color: var(--primary);
             background: #F8F9FA;
-            padding: 12px;
+            padding: 10px 8px;
             border-radius: 8px;
             display: inline-block;
             width: 100%;
             text-align: center;
             font-weight: 700;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border: 1px solid var(--border);
+            margin: 0;
+        }
+        
+        /* Tablo Satırları - Hizalama düzeltmesi */
+        [data-testid="column"] {
+            padding: 0 4px;
+        }
+        
+        /* Tablo değerleri için padding */
+        [data-testid="column"] > div > div {
+            padding: 8px 4px;
         }
         
         /* Divider */
