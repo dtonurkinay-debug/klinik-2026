@@ -310,11 +310,11 @@ def load_custom_css():
 # --- 1. BÖLGESEL AYAR ---
 try:
     locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
-except Exception as e:
+except:
     try:
         locale.setlocale(locale.LC_ALL, 'tr_TR')
-    except Exception as e2:
-        st.warning(f"⚠️ Türkçe locale yüklenemedi. Varsayılan kullanılıyor.")
+    except:
+        pass  # Sessizce geç, uyarı gösterme
 
 # --- 2. GÜVENLİK ---
 PASSWORD = "klinik2026"
