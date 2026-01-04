@@ -174,15 +174,15 @@ def load_custom_css():
             padding: 10px;
         }
         
-        /* Tablo Başlıkları - Hizalama için padding sıfırlandı */
+        /* Tablo Başlıkları - Sol padding eklendi */
         [data-testid="stMarkdownContainer"] strong {
             color: var(--primary);
             background: #F8F9FA;
-            padding: 10px 0px;
+            padding: 10px 0px 10px 12px;
             border-radius: 8px;
             display: inline-block;
             width: 100%;
-            text-align: center;
+            text-align: left;
             font-weight: 700;
             font-size: 12px;
             text-transform: uppercase;
@@ -193,8 +193,8 @@ def load_custom_css():
         
         /* Tablo satırları için tutarlı padding */
         [data-testid="column"] > div {
-            padding: 8px 0px;
-            text-align: center;
+            padding: 8px 0px 8px 0px;
+            text-align: left;
         }
         
         /* Divider */
