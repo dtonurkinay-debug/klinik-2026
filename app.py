@@ -22,7 +22,7 @@ PASSWORD = "klinik2026"
 
 def check_password():
     if "password_correct" not in st.session_state:
-        st.title("🔐 Klinik 2026 Girişi")
+        st.title("🔐 2026 Gelir-Gider Takip")
         pwd = st.text_input("Şifre:", type="password")
         if st.button("Giriş"):
             if pwd == PASSWORD:
@@ -73,7 +73,7 @@ def format_rate(value):
     return f"{value:.2f}".replace(".", ",")
 
 # --- ANA PROGRAM ---
-st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide")
+st.set_page_config(page_title="Analitik Raporlar", layout="wide")
 
 if check_password():
     df_raw, worksheet = load_data()
@@ -83,7 +83,7 @@ if check_password():
     df = df_raw[df_raw["Silindi"] != "X"].copy()
     df['UPB_TRY'] = df.apply(lambda r: float(r['Tutar']) * kurlar.get(r['Para Birimi'], 1.0), axis=1)
 
-    st.title("📊 Klinik 2026 Yönetim Paneli")
+    st.title("📊 2026 Gelir-Gider Yönetimi")
     
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
