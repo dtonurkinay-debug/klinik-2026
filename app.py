@@ -8,7 +8,243 @@ import xml.etree.ElementTree as ET
 import locale
 import plotly.express as px
 
-# --- 0. BÖLGESEL AYAR ---
+# --- 0. MODERN CSS STİLLERİ ---
+def load_custom_css():
+    st.markdown("""
+    <style>
+        /* Ana Tema Renkleri */
+        :root {
+            --primary: #2C3E50;
+            --success: #27AE60;
+            --danger: #E74C3C;
+            --accent: #3498DB;
+            --bg-light: #ECF0F1;
+            --card-bg: #FFFFFF;
+        }
+        
+        /* Genel Arkaplan Gradient */
+        .stApp {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        /* Login Ekranı */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        .login-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .login-subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        /* Metrik Kartları */
+        [data-testid="stMetricValue"] {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        [data-testid="metric-container"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        [data-testid="metric-container"]:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        [data-testid="stMetricLabel"] {
+            color: white !important;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        [data-testid="stMetricValue"] {
+            color: white !important;
+        }
+        
+        /* Başlıklar */
+        h1 {
+            color: white !important;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            font-weight: 800;
+        }
+        
+        h2, h3 {
+            color: white !important;
+            font-weight: 700;
+        }
+        
+        /* Selectbox */
+        [data-baseweb="select"] {
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Input Alanları */
+        input {
+            border-radius: 10px !important;
+            border: 2px solid #dfe6e9 !important;
+            padding: 12px !important;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+        }
+        
+        /* Butonlar */
+        .stButton button {
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 10px 24px;
+            border: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stButton button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        /* Giriş Butonu */
+        .stButton button[kind="primary"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        /* Form Submit Butonu */
+        .stButton button[type="submit"] {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            width: 100%;
+        }
+        
+        /* Düzenle Butonu */
+        button[key*="e_"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            padding: 8px 16px !important;
+            font-size: 16px !important;
+        }
+        
+        /* Sil Butonu */
+        button[key*="d_"] {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%) !important;
+            color: white !important;
+            padding: 8px 16px !important;
+            font-size: 16px !important;
+        }
+        
+        /* Expander */
+        [data-testid="stExpander"] {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            padding: 10px;
+        }
+        
+        /* Tablo Başlıkları */
+        [data-testid="stMarkdownContainer"] strong {
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+        }
+        
+        /* Divider */
+        hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+        }
+        
+        /* Form Container */
+        [data-testid="stForm"] {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        
+        /* Yan Panel (Yeni Kayıt) */
+        .element-container:has([data-testid="stForm"]) {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Uyarı Mesajları */
+        .stAlert {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Success Badge */
+        .gelir-badge {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        /* Danger Badge */
+        .gider-badge {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        /* Animasyonlar */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stApp > div {
+            animation: slideIn 0.5s ease-out;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- 1. BÖLGESEL AYAR ---
 try:
     locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
 except Exception as e:
@@ -17,39 +253,50 @@ except Exception as e:
     except Exception as e2:
         st.warning(f"⚠️ Türkçe locale yüklenemedi. Varsayılan kullanılıyor.")
 
-# --- 1. GÜVENLİK ---
+# --- 2. GÜVENLİK ---
 PASSWORD = "klinik2026"
 
 def check_password():
     if "password_correct" not in st.session_state:
-        st.title("🔐 Klinik 2026 Girişi")
-        pwd = st.text_input("Şifre:", type="password")
-        if st.button("Giriş"):
-            if pwd == PASSWORD:
-                st.session_state.password_correct = True
-                st.rerun()
-            else:
-                st.error("Hatalı şifre!")
+        load_custom_css()  # CSS yükle
+        
+        st.markdown("""
+        <div class="login-container">
+            <div class="login-title">🏥 Klinik 2026</div>
+            <div class="login-subtitle">Yönetim Paneline Hoş Geldiniz</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Login formu
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            pwd = st.text_input("🔐 Şifre", type="password", placeholder="Şifrenizi girin...")
+            if st.button("Giriş Yap", use_container_width=True, type="primary"):
+                if pwd == PASSWORD:
+                    st.session_state.password_correct = True
+                    st.rerun()
+                else:
+                    st.error("❌ Hatalı şifre! Lütfen tekrar deneyin.")
         return False
     return True
 
-# --- 2. FONKSİYONLAR ---
+# --- 3. FONKSİYONLAR ---
 @st.cache_data(ttl=3600)
 def get_exchange_rates():
     try:
         response = requests.get("https://www.tcmb.gov.tr/kurlar/today.xml", timeout=5)
-        response.raise_for_status()  # HTTP hata kontrolü
+        response.raise_for_status()
         root = ET.fromstring(response.content)
         rates = {'TRY': 1.0}
         for currency in root.findall('Currency'):
             code = currency.get('CurrencyCode')
             if code in ['USD', 'EUR']:
                 buying_text = currency.find('ForexBuying').text
-                if buying_text:  # None kontrolü
+                if buying_text:
                     rates[code] = float(buying_text)
         return rates
     except Exception as e:
-        st.warning(f"⚠️ Döviz kurları yüklenemedi, varsayılan değerler kullanılıyor: {str(e)}")
+        st.warning(f"⚠️ Döviz kurları yüklenemedi, varsayılan değerler kullanılıyor")
         return {'TRY': 1.0, 'USD': 30.00, 'EUR': 33.00}
 
 def get_gspread_client():
@@ -66,7 +313,7 @@ def load_data():
         sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
         data = sheet.get_all_values()
         
-        if len(data) < 2:  # Başlık + en az 1 satır kontrolü
+        if len(data) < 2:
             st.warning("⚠️ Tabloda veri bulunamadı.")
             return pd.DataFrame(), sheet
         
@@ -96,16 +343,18 @@ def format_rate(value):
         return "0,00"
 
 # --- ANA PROGRAM ---
-st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide")
+st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide", page_icon="🏥")
 
 if check_password():
+    load_custom_css()  # CSS yükle
+    
     df_raw, worksheet = load_data()
     kurlar = get_exchange_rates()
     
     if "Silindi" not in df_raw.columns: df_raw["Silindi"] = ""
     df = df_raw[df_raw["Silindi"] != "X"].copy()
     
-    # DÜZELTME: Güvenli UPB hesaplama
+    # Güvenli UPB hesaplama
     def safe_upb_calc(row):
         try:
             tutar = float(row['Tutar'])
@@ -128,11 +377,11 @@ if check_password():
     t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
 
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric(f"Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
-    m2.metric(f"Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
-    m3.metric("Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
-    m4.metric("USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
-    m5.metric("EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+    m1.metric(f"💰 Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
+    m2.metric(f"💸 Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
+    m3.metric("💵 Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
+    m4.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+    m5.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
 
     # --- ANALİZ PANELİ ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
@@ -145,10 +394,15 @@ if check_password():
 
         g1, g2 = st.columns(2)
         with g1:
-            fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', title="Aylık Gelir/Gider Trendi", markers=True)
+            fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', 
+                          title="Aylık Gelir/Gider Trendi", markers=True)
+            fig1.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig1, use_container_width=True)
         with g2:
-            fig2 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], values='UPB_TRY', names='Kategori', title="Gelir Dağılımı (Kümülatif)", hole=0.4)
+            fig2 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], 
+                         values='UPB_TRY', names='Kategori', 
+                         title="Gelir Dağılımı (Kümülatif)", hole=0.4)
+            fig2.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig2, use_container_width=True)
 
         g3, g4 = st.columns(2)
@@ -158,9 +412,13 @@ if check_password():
                 df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
                 df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
                 fig3 = px.area(df_kasa.reset_index(), x='Ay_Ad', y='Kumulatif', title="Kasa Büyüme Trendi")
+                fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig3, use_container_width=True)
         with g4:
-            fig4 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"], values='UPB_TRY', names='Kategori', title="Gider Dağılımı (Kümülatif)", hole=0.4)
+            fig4 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"], 
+                         values='UPB_TRY', names='Kategori', 
+                         title="Gider Dağılımı (Kümülatif)", hole=0.4)
+            fig4.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig4, use_container_width=True)
 
     st.divider()
@@ -171,22 +429,21 @@ if check_password():
         st.subheader(f"📑 {secilen_ay_adi} Ayı Hareketleri")
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
         
-        search_term = st.text_input("🔍 Hızlı Arama:", "")
+        search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         if search_term:
             df_display = df_display[df_display.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)]
 
         c = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
-        heads = ["ID", "Tarih", "Tür", "Hasta Adi", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]
+        heads = ["ID", "Tarih", "Tür", "Hasta Adı", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]
         for col, h in zip(c, heads): col.markdown(f"**{h}**")
         st.write("---")
 
-        # DÜZELTME: Modal fonksiyonları loop dışında tanımlama
+        # Modal fonksiyonları
         def show_edit_modal(row_data):
-            @st.dialog(f"Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
+            @st.dialog(f"✏️ Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
             def edit_modal():
                 n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
                 
-                # DÜZELTME: Tarih parsing güvenli hale getirildi
                 try:
                     default_date = pd.to_datetime(row_data['Tarih']).date()
                 except:
@@ -204,7 +461,6 @@ if check_password():
                     n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
                     n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
                 
-                # DÜZELTME: Tutar parsing güvenli
                 try:
                     default_tutar = int(float(row_data.get('Tutar', 0)))
                 except:
@@ -212,12 +468,11 @@ if check_password():
                 n_tut = st.number_input("Tutar", value=default_tutar, step=1)
                 n_acik = st.text_area("Açıklama", value=str(row_data.get('Aciklama', '')))
                 
-                if st.button("Güncelle"):
+                if st.button("💾 Güncelle", use_container_width=True):
                     if n_tut <= 0: 
                         st.error("Lütfen geçerli bir tutar girin!")
                     else:
                         try:
-                            # DÜZELTME: ID ile güvenli index bulma
                             row_id = row_data.get('ID', '')
                             matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
                             if len(matching_rows) > 0:
@@ -241,8 +496,8 @@ if check_password():
                 tutar = row_data.get('Tutar', '0')
                 para = row_data.get('Para Birimi', 'TRY')
                 
-                st.error(f"SİLİNECEK: {row_id} | {hasta} | {tutar} {para}")
-                if st.button("Evet, Sil", use_container_width=True, type="primary"):
+                st.error(f"**SİLİNECEK:** {row_id} | {hasta} | {tutar} {para}")
+                if st.button("🗑️ Evet, Sil", use_container_width=True, type="primary"):
                     try:
                         matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
                         if len(matching_rows) > 0:
@@ -256,14 +511,15 @@ if check_password():
                         st.error(f"❌ Silme hatası: {str(e)}")
             delete_modal()
 
-        # DÜZELTME: Sütun ismiyle güvenli erişim
+        # Satırları göster
         for _, row in df_display.iterrows():
-            color = "#2e7d32" if row.get('Islem Turu') == "Gelir" else "#c62828"
+            is_gelir = row.get('Islem Turu') == "Gelir"
+            badge_class = "gelir-badge" if is_gelir else "gider-badge"
             r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
             
             r[0].write(row.iloc[0])
             r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
-            r[2].markdown(f"<span style='color:{color}; font-weight:bold;'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
+            r[2].markdown(f"<span class='{badge_class}'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
             r[3].write(row.get('Hasta Adi', ''))
             r[4].write(row.get('Kategori', ''))
             r[5].write(row.get('Para Birimi', ''))
@@ -281,16 +537,16 @@ if check_password():
     with col_side:
         st.subheader("➕ Yeni Kayıt")
         with st.form("form_v22_final", clear_on_submit=True):
-            f_tar = st.date_input("Tarih", date.today())
-            f_tur = st.selectbox("Tür", ["Gelir", "Gider"])
-            f_hast = st.text_input("Hasta/Cari")
-            f_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
-            f_para = st.selectbox("Para Birimi", ["TRY", "USD", "EUR"])
-            f_tut = st.number_input("Tutar", min_value=0, step=1)
-            f_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
-            f_acik = st.text_input("Açıklama")
+            f_tar = st.date_input("📅 Tarih", date.today())
+            f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
+            f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
+            f_kat = st.selectbox("📁 Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
+            f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR"])
+            f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
+            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK", "Ali", "Murat"])
+            f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
             
-            submitted = st.form_submit_button("Ekle", use_container_width=True)
+            submitted = st.form_submit_button("✅ Ekle", use_container_width=True)
             if submitted:
                 if f_tut <= 0:
                     st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
@@ -298,7 +554,6 @@ if check_password():
                     try:
                         now = datetime.now()
                         
-                        # DÜZELTME: ID hesaplama güvenli hale getirildi
                         if len(df_raw) > 0:
                             existing_ids = pd.to_numeric(df_raw.iloc[:, 0], errors='coerce').dropna()
                             if len(existing_ids) > 0:
