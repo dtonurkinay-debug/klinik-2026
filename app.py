@@ -12,83 +12,87 @@ import plotly.express as px
 def load_custom_css():
     st.markdown("""
     <style>
-        /* Ana Tema Renkleri */
+        /* Ana Tema Renkleri - Minimal Beyaz Dental */
         :root {
             --primary: #2C3E50;
             --success: #27AE60;
             --danger: #E74C3C;
             --accent: #3498DB;
-            --bg-light: #ECF0F1;
-            --card-bg: #FFFFFF;
+            --bg-main: #F5F7FA;
+            --bg-card: #FFFFFF;
+            --text-dark: #2C3E50;
+            --text-light: #546E7A;
+            --border: #E0E6ED;
         }
         
-        /* Genel Arkaplan Gradient */
+        /* Genel Arkaplan - Temiz Beyaz */
         .stApp {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(to bottom, #FFFFFF 0%, #F5F7FA 100%);
         }
         
         /* Login Ekranı */
         .login-container {
-            max-width: 400px;
+            max-width: 420px;
             margin: 100px auto;
-            padding: 40px;
+            padding: 50px;
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
             text-align: center;
         }
         
         .login-title {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: bold;
             color: var(--primary);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         
         .login-subtitle {
-            color: #7f8c8d;
+            color: var(--text-light);
             margin-bottom: 30px;
+            font-size: 15px;
         }
         
-        /* Metrik Kartları */
-        [data-testid="stMetricValue"] {
-            font-size: 28px;
-            font-weight: bold;
-        }
-        
+        /* Metrik Kartları - Beyaz Kartlar */
         [data-testid="metric-container"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-            border: none;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
         }
         
         [data-testid="metric-container"]:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
         
         [data-testid="stMetricLabel"] {
-            color: white !important;
+            color: var(--text-light) !important;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         [data-testid="stMetricValue"] {
-            color: white !important;
+            color: var(--primary) !important;
+            font-size: 28px;
+            font-weight: 700;
         }
         
         /* Başlıklar */
         h1 {
-            color: white !important;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            color: var(--primary) !important;
             font-weight: 800;
+            margin-bottom: 30px;
         }
         
         h2, h3 {
-            color: white !important;
+            color: var(--primary) !important;
             font-weight: 700;
         }
         
@@ -96,141 +100,173 @@ def load_custom_css():
         [data-baseweb="select"] {
             border-radius: 10px;
             background: white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         }
         
         /* Input Alanları */
-        input {
-            border-radius: 10px !important;
-            border: 2px solid #dfe6e9 !important;
+        input, textarea, select {
+            border-radius: 8px !important;
+            border: 1.5px solid var(--border) !important;
             padding: 12px !important;
             transition: all 0.3s ease;
+            background: white !important;
         }
         
-        input:focus {
+        input:focus, textarea:focus {
             border-color: var(--accent) !important;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.08) !important;
         }
         
-        /* Butonlar */
+        /* Butonlar - Genel */
         .stButton button {
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: 600;
-            padding: 10px 24px;
+            padding: 10px 20px;
             border: none;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
         
         .stButton button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         /* Giriş Butonu */
         .stButton button[kind="primary"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
             color: white;
         }
         
         /* Form Submit Butonu */
         .stButton button[type="submit"] {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
             color: white;
             width: 100%;
         }
         
         /* Düzenle Butonu */
         button[key*="e_"] {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%) !important;
             color: white !important;
-            padding: 8px 16px !important;
-            font-size: 16px !important;
+            padding: 6px 14px !important;
+            font-size: 14px !important;
+            border-radius: 6px !important;
         }
         
         /* Sil Butonu */
         button[key*="d_"] {
-            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%) !important;
+            background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important;
             color: white !important;
-            padding: 8px 16px !important;
-            font-size: 16px !important;
+            padding: 6px 14px !important;
+            font-size: 14px !important;
+            border-radius: 6px !important;
         }
         
         /* Expander */
         [data-testid="stExpander"] {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            border: none;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             padding: 10px;
         }
         
         /* Tablo Başlıkları */
         [data-testid="stMarkdownContainer"] strong {
-            color: white;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 10px;
+            color: var(--primary);
+            background: #F8F9FA;
+            padding: 12px;
             border-radius: 8px;
             display: inline-block;
             width: 100%;
             text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid var(--border);
         }
         
         /* Divider */
         hr {
             border: none;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
         }
         
         /* Form Container */
         [data-testid="stForm"] {
             background: white;
             padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
         }
         
         /* Yan Panel (Yeni Kayıt) */
         .element-container:has([data-testid="stForm"]) {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         
         /* Uyarı Mesajları */
         .stAlert {
             border-radius: 10px;
-            border: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         }
         
-        /* Success Badge */
+        /* Success Badge - Gelir */
         .gelir-badge {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
             color: white;
-            padding: 5px 15px;
+            padding: 6px 16px;
             border-radius: 20px;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 12px;
             display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3);
         }
         
-        /* Danger Badge */
+        /* Danger Badge - Gider */
         .gider-badge {
-            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+            background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
             color: white;
-            padding: 5px 15px;
+            padding: 6px 16px;
             border-radius: 20px;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 12px;
             display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+        }
+        
+        /* Tablo Satırları */
+        .element-container {
+            padding: 8px 0;
+        }
+        
+        /* Veri Satırları Hover */
+        .element-container:hover {
+            background: #F8F9FA;
+            border-radius: 8px;
+            transition: all 0.2s ease;
         }
         
         /* Animasyonlar */
-        @keyframes slideIn {
+        @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(10px);
             }
             to {
                 opacity: 1;
@@ -239,7 +275,26 @@ def load_custom_css():
         }
         
         .stApp > div {
-            animation: slideIn 0.5s ease-out;
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #F5F7FA;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E0;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A0AEC0;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -262,8 +317,8 @@ def check_password():
         
         st.markdown("""
         <div class="login-container">
-            <div class="login-title">🏥 Klinik 2026</div>
-            <div class="login-subtitle">Yönetim Paneline Hoş Geldiniz</div>
+            <div class="login-title">🦷 Klinik 2026</div>
+            <div class="login-subtitle">Diş Kliniği Yönetim Sistemi</div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -343,7 +398,7 @@ def format_rate(value):
         return "0,00"
 
 # --- ANA PROGRAM ---
-st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide", page_icon="🏥")
+st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide", page_icon="🦷")
 
 if check_password():
     load_custom_css()  # CSS yükle
@@ -366,7 +421,7 @@ if check_password():
     
     df['UPB_TRY'] = df.apply(safe_upb_calc, axis=1)
 
-    st.title("📊 Klinik 2026 Yönetim Paneli")
+    st.title("🦷 Klinik 2026 Yönetim Paneli")
     
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
@@ -396,13 +451,13 @@ if check_password():
         with g1:
             fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', 
                           title="Aylık Gelir/Gider Trendi", markers=True)
-            fig1.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+            fig1.update_layout(plot_bgcolor='white', paper_bgcolor='white')
             st.plotly_chart(fig1, use_container_width=True)
         with g2:
             fig2 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], 
                          values='UPB_TRY', names='Kategori', 
                          title="Gelir Dağılımı (Kümülatif)", hole=0.4)
-            fig2.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+            fig2.update_layout(plot_bgcolor='white', paper_bgcolor='white')
             st.plotly_chart(fig2, use_container_width=True)
 
         g3, g4 = st.columns(2)
@@ -412,13 +467,13 @@ if check_password():
                 df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
                 df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
                 fig3 = px.area(df_kasa.reset_index(), x='Ay_Ad', y='Kumulatif', title="Kasa Büyüme Trendi")
-                fig3.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                fig3.update_layout(plot_bgcolor='white', paper_bgcolor='white')
                 st.plotly_chart(fig3, use_container_width=True)
         with g4:
             fig4 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"], 
                          values='UPB_TRY', names='Kategori', 
                          title="Gider Dağılımı (Kümülatif)", hole=0.4)
-            fig4.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+            fig4.update_layout(plot_bgcolor='white', paper_bgcolor='white')
             st.plotly_chart(fig4, use_container_width=True)
 
     st.divider()
