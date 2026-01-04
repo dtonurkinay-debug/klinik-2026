@@ -174,11 +174,11 @@ def load_custom_css():
             padding: 10px;
         }
         
-        /* Tablo Başlıkları */
+        /* Tablo Başlıkları - Hizalama için padding sıfırlandı */
         [data-testid="stMarkdownContainer"] strong {
             color: var(--primary);
             background: #F8F9FA;
-            padding: 10px 8px;
+            padding: 10px 0px;
             border-radius: 8px;
             display: inline-block;
             width: 100%;
@@ -191,14 +191,10 @@ def load_custom_css():
             margin: 0;
         }
         
-        /* Tablo Satırları - Hizalama düzeltmesi */
-        [data-testid="column"] {
-            padding: 0 4px;
-        }
-        
-        /* Tablo değerleri için padding */
-        [data-testid="column"] > div > div {
-            padding: 8px 4px;
+        /* Tablo satırları için tutarlı padding */
+        [data-testid="column"] > div {
+            padding: 8px 0px;
+            text-align: center;
         }
         
         /* Divider */
