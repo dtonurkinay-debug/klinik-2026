@@ -193,7 +193,7 @@ def load_custom_css():
         
         /* Tablo satırları için tutarlı padding */
         [data-testid="column"] > div {
-            padding: 8px 0px 8px 0px;
+            padding: 8px 0px 8px 2mm;
             text-align: left;
         }
         
