@@ -7,16 +7,15 @@ import requests
 import xml.etree.ElementTree as ET
 import locale
 import plotly.express as px
-from functools import lru_cache
 
 # --- 0. BÖLGESEL AYAR ---
 try:
     locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
-except:
+except Exception as e:
     try:
         locale.setlocale(locale.LC_ALL, 'tr_TR')
-    except:
-        pass
+    except Exception as e2:
+        st.warning(f"⚠️ Türkçe locale yüklenemedi. Varsayılan kullanılıyor.")
 
 # --- 1. GÜVENLİK ---
 PASSWORD = "klinik2026"
@@ -34,141 +33,100 @@ def check_password():
         return False
     return True
 
-# --- 2. FONKSİYONLAR (İYİLEŞTİRİLMİŞ) ---
-
+# --- 2. FONKSİYONLAR ---
 @st.cache_data(ttl=3600)
 def get_exchange_rates():
-    """Döviz kurlarını çeker - 1 saat cache"""
     try:
         response = requests.get("https://www.tcmb.gov.tr/kurlar/today.xml", timeout=5)
+        response.raise_for_status()  # HTTP hata kontrolü
         root = ET.fromstring(response.content)
         rates = {'TRY': 1.0}
         for currency in root.findall('Currency'):
             code = currency.get('CurrencyCode')
             if code in ['USD', 'EUR']:
-                rates[code] = float(currency.find('ForexBuying').text)
+                buying_text = currency.find('ForexBuying').text
+                if buying_text:  # None kontrolü
+                    rates[code] = float(buying_text)
         return rates
-    except:
+    except Exception as e:
+        st.warning(f"⚠️ Döviz kurları yüklenemedi, varsayılan değerler kullanılıyor: {str(e)}")
         return {'TRY': 1.0, 'USD': 30.00, 'EUR': 33.00}
 
-@st.cache_resource
 def get_gspread_client():
-    """GSpread client - Session boyunca cache"""
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"], 
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-    return gspread.authorize(creds)
+    try:
+        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.error(f"❌ Google Sheets bağlantısı başarısız: {str(e)}")
+        st.stop()
 
-@st.cache_data(ttl=300)  # 5 dakika cache
 def load_data():
-    """Verileri yükler ve ön-işlemeden geçirir"""
-    client = get_gspread_client()
-    sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
-    data = sheet.get_all_values()
-    
-    # DataFrame oluşturma
-    df = pd.DataFrame(data[1:], columns=data[0])
-    
-    # Veri tipleri optimizasyonu
-    df['Tarih_DT'] = pd.to_datetime(df['Tarih'], errors='coerce')
-    df['Tutar'] = pd.to_numeric(df['Tutar'], errors='coerce').fillna(0)
-    
-    # Sıralama
-    sort_cols = ['Tarih_DT']
-    if 'Yaratma Tarihi' in df.columns: 
-        sort_cols.append('Yaratma Tarihi')
-    if 'Yaratma Saati' in df.columns: 
-        sort_cols.append('Yaratma Saati')
-    
-    df = df.sort_values(by=sort_cols, ascending=True)
-    
-    return df, sheet
-
-@lru_cache(maxsize=128)
-def calculate_upb(tutar: float, para_birimi: str, usd_rate: float, eur_rate: float) -> float:
-    """UPB hesaplama - LRU cache ile optimize edilmiş"""
-    rates = {'TRY': 1.0, 'USD': usd_rate, 'EUR': eur_rate}
-    return tutar * rates.get(para_birimi, 1.0)
-
-@st.cache_data
-def prepare_dataframe_with_upb(df, kurlar):
-    """DataFrame'e UPB sütunu ekler - Vektörel işlem"""
-    df = df.copy()
-    
-    if "Silindi" not in df.columns: 
-        df["Silindi"] = ""
-    
-    # Vektörel UPB hesaplama (çok daha hızlı)
-    df['UPB_TRY'] = df['Tutar'].astype(float)
-    df.loc[df['Para Birimi'] == 'USD', 'UPB_TRY'] *= kurlar['USD']
-    df.loc[df['Para Birimi'] == 'EUR', 'UPB_TRY'] *= kurlar['EUR']
-    
-    return df
-
-@st.cache_data
-def get_monthly_data(df, ay_no):
-    """Aylık verileri filtreler - Cache'li"""
-    return df[df['Tarih_DT'].dt.month == ay_no].copy()
-
-@st.cache_data
-def get_cumulative_data(df, ay_no):
-    """Kümülatif verileri filtreler - Cache'li"""
-    return df[df['Tarih_DT'].dt.month <= ay_no].copy()
-
-@st.cache_data
-def calculate_metrics(df_kumulatif):
-    """Metrikleri hesaplar - Cache'li"""
-    t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
-    t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
-    return t_gelir, t_gider
-
-@st.cache_data
-def prepare_trend_data(df):
-    """Trend verileri hazırlar - Cache'li"""
-    df_trends = df.copy()
-    df_trends['Ay_No'] = df_trends['Tarih_DT'].dt.month
-    df_trends['Ay_Ad'] = df_trends['Tarih_DT'].dt.strftime('%B')
-    
-    trend_summary = df_trends.groupby(['Ay_No', 'Ay_Ad', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
-    trend_summary = trend_summary.sort_values('Ay_No')
-    
-    return trend_summary
+    try:
+        client = get_gspread_client()
+        sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+        data = sheet.get_all_values()
+        
+        if len(data) < 2:  # Başlık + en az 1 satır kontrolü
+            st.warning("⚠️ Tabloda veri bulunamadı.")
+            return pd.DataFrame(), sheet
+        
+        df = pd.DataFrame(data[1:], columns=data[0])
+        df['Tarih_DT'] = pd.to_datetime(df['Tarih'], errors='coerce')
+        df['Tutar'] = pd.to_numeric(df['Tutar'], errors='coerce').fillna(0)
+        
+        sort_cols = ['Tarih_DT']
+        if 'Yaratma Tarihi' in df.columns: sort_cols.append('Yaratma Tarihi')
+        if 'Yaratma Saati' in df.columns: sort_cols.append('Yaratma Saati')
+        df = df.sort_values(by=sort_cols, ascending=True)
+        return df, sheet
+    except Exception as e:
+        st.error(f"❌ Veri yükleme hatası: {str(e)}")
+        st.stop()
 
 def format_int(value):
-    """Tam sayı formatı"""
-    return f"{int(round(value)):,}".replace(",", ".")
+    try:
+        return f"{int(round(float(value))):,}".replace(",", ".")
+    except:
+        return "0"
 
 def format_rate(value):
-    """Kur formatı"""
-    return f"{value:.2f}".replace(".", ",")
+    try:
+        return f"{float(value):.2f}".replace(".", ",")
+    except:
+        return "0,00"
 
 # --- ANA PROGRAM ---
 st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide")
 
 if check_password():
-    # Veri yükleme (cache'li)
-    with st.spinner("📊 Veriler yükleniyor..."):
-        df_raw, worksheet = load_data()
-        kurlar = get_exchange_rates()
+    df_raw, worksheet = load_data()
+    kurlar = get_exchange_rates()
     
-    # DataFrame hazırlama (cache'li)
-    df = prepare_dataframe_with_upb(df_raw, kurlar)
-    df = df[df["Silindi"] != "X"].copy()
+    if "Silindi" not in df_raw.columns: df_raw["Silindi"] = ""
+    df = df_raw[df_raw["Silindi"] != "X"].copy()
+    
+    # DÜZELTME: Güvenli UPB hesaplama
+    def safe_upb_calc(row):
+        try:
+            tutar = float(row['Tutar'])
+            para = row['Para Birimi']
+            kur = kurlar.get(para, 1.0)
+            return tutar * kur
+        except:
+            return 0.0
+    
+    df['UPB_TRY'] = df.apply(safe_upb_calc, axis=1)
 
     st.title("📊 Klinik 2026 Yönetim Paneli")
     
-    # Ay seçimi
-    aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", 
-             "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+    aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
     secilen_ay_no = aylar.index(secilen_ay_adi) + 1
 
-    # Kümülatif hesaplamalar (cache'li)
-    df_kumulatif = get_cumulative_data(df, secilen_ay_no)
-    t_gelir, t_gider = calculate_metrics(df_kumulatif)
+    df_kumulatif = df[df['Tarih_DT'].dt.month <= secilen_ay_no].copy()
+    t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
+    t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
 
-    # Metrikler
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric(f"Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
     m2.metric(f"Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
@@ -178,17 +136,19 @@ if check_password():
 
     # --- ANALİZ PANELİ ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
-        trend_summary = prepare_trend_data(df)
+        df_trends = df.copy()
+        df_trends['Ay_No'] = df_trends['Tarih_DT'].dt.month
+        df_trends['Ay_Ad'] = df_trends['Tarih_DT'].dt.strftime('%B')
+        
+        trend_summary = df_trends.groupby(['Ay_No', 'Ay_Ad', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
+        trend_summary = trend_summary.sort_values('Ay_No')
 
         g1, g2 = st.columns(2)
         with g1:
-            fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', 
-                          title="Aylık Gelir/Gider Trendi", markers=True)
+            fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', title="Aylık Gelir/Gider Trendi", markers=True)
             st.plotly_chart(fig1, use_container_width=True)
         with g2:
-            fig2 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], 
-                         values='UPB_TRY', names='Kategori', 
-                         title="Gelir Dağılımı (Kümülatif)", hole=0.4)
+            fig2 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], values='UPB_TRY', names='Kategori', title="Gelir Dağılımı (Kümülatif)", hole=0.4)
             st.plotly_chart(fig2, use_container_width=True)
 
         g3, g4 = st.columns(2)
@@ -197,13 +157,10 @@ if check_password():
             if 'Gelir' in df_kasa and 'Gider' in df_kasa:
                 df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
                 df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
-                fig3 = px.area(df_kasa.reset_index(), x='Ay_Ad', y='Kumulatif', 
-                              title="Kasa Büyüme Trendi")
+                fig3 = px.area(df_kasa.reset_index(), x='Ay_Ad', y='Kumulatif', title="Kasa Büyüme Trendi")
                 st.plotly_chart(fig3, use_container_width=True)
         with g4:
-            fig4 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"], 
-                         values='UPB_TRY', names='Kategori', 
-                         title="Gider Dağılımı (Kümülatif)", hole=0.4)
+            fig4 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"], values='UPB_TRY', names='Kategori', title="Gider Dağılımı (Kümülatif)", hole=0.4)
             st.plotly_chart(fig4, use_container_width=True)
 
     st.divider()
@@ -212,81 +169,114 @@ if check_password():
 
     with col_main:
         st.subheader(f"📑 {secilen_ay_adi} Ayı Hareketleri")
+        df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
         
-        # Aylık veri (cache'li)
-        df_display = get_monthly_data(df, secilen_ay_no)
-        
-        # Arama
         search_term = st.text_input("🔍 Hızlı Arama:", "")
         if search_term:
-            mask = df_display.astype(str).apply(
-                lambda x: x.str.contains(search_term, case=False, na=False)
-            ).any(axis=1)
-            df_display = df_display[mask]
+            df_display = df_display[df_display.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)]
 
-        # Tablo başlıkları
         c = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
         heads = ["ID", "Tarih", "Tür", "Hasta Adi", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]
-        for col, h in zip(c, heads): 
-            col.markdown(f"**{h}**")
+        for col, h in zip(c, heads): col.markdown(f"**{h}**")
         st.write("---")
 
-        # Satırları göster
+        # DÜZELTME: Modal fonksiyonları loop dışında tanımlama
+        def show_edit_modal(row_data):
+            @st.dialog(f"Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
+            def edit_modal():
+                n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
+                
+                # DÜZELTME: Tarih parsing güvenli hale getirildi
+                try:
+                    default_date = pd.to_datetime(row_data['Tarih']).date()
+                except:
+                    default_date = date.today()
+                n_tar = st.date_input("İşlem Tarihi", value=default_date)
+                
+                c_m1, c_m2 = st.columns(2)
+                with c_m1:
+                    n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], 
+                                       index=0 if row_data.get('Islem Turu')=="Gelir" else 1)
+                    curr_para = row_data.get('Para Birimi', 'TRY')
+                    para_idx = ["TRY","USD","EUR"].index(curr_para) if curr_para in ["TRY","USD","EUR"] else 0
+                    n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR"], index=para_idx)
+                with c_m2:
+                    n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
+                    n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
+                
+                # DÜZELTME: Tutar parsing güvenli
+                try:
+                    default_tutar = int(float(row_data.get('Tutar', 0)))
+                except:
+                    default_tutar = 0
+                n_tut = st.number_input("Tutar", value=default_tutar, step=1)
+                n_acik = st.text_area("Açıklama", value=str(row_data.get('Aciklama', '')))
+                
+                if st.button("Güncelle"):
+                    if n_tut <= 0: 
+                        st.error("Lütfen geçerli bir tutar girin!")
+                    else:
+                        try:
+                            # DÜZELTME: ID ile güvenli index bulma
+                            row_id = row_data.get('ID', '')
+                            matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
+                            if len(matching_rows) > 0:
+                                idx = matching_rows.index[0] + 2
+                                worksheet.update(f"A{idx}:J{idx}", 
+                                              [[row_id, str(n_tar), n_tur, n_hast, 
+                                                n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
+                                st.success("✅ Güncelleme başarılı!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Kayıt bulunamadı!")
+                        except Exception as e:
+                            st.error(f"❌ Güncelleme hatası: {str(e)}")
+            edit_modal()
+
+        def show_delete_modal(row_data):
+            @st.dialog("⚠️ Kayıt Silme Onayı")
+            def delete_modal():
+                row_id = row_data.get('ID', '')
+                hasta = row_data.get('Hasta Adi', '')
+                tutar = row_data.get('Tutar', '0')
+                para = row_data.get('Para Birimi', 'TRY')
+                
+                st.error(f"SİLİNECEK: {row_id} | {hasta} | {tutar} {para}")
+                if st.button("Evet, Sil", use_container_width=True, type="primary"):
+                    try:
+                        matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
+                        if len(matching_rows) > 0:
+                            idx = matching_rows.index[0] + 2
+                            worksheet.update_cell(idx, 10, "X")
+                            st.success("✅ Silme başarılı!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Kayıt bulunamadı!")
+                    except Exception as e:
+                        st.error(f"❌ Silme hatası: {str(e)}")
+            delete_modal()
+
+        # DÜZELTME: Sütun ismiyle güvenli erişim
         for _, row in df_display.iterrows():
-            color = "#2e7d32" if row['Islem Turu'] == "Gelir" else "#c62828"
+            color = "#2e7d32" if row.get('Islem Turu') == "Gelir" else "#c62828"
             r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
             
             r[0].write(row.iloc[0])
             r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
-            r[2].markdown(f"<span style='color:{color}; font-weight:bold;'>{row.iloc[2]}</span>", 
-                         unsafe_allow_html=True)
-            r[3].write(row.iloc[3])
-            r[4].write(row.iloc[4])
-            r[5].write(row.iloc[5])
-            r[6].write(format_int(float(row.iloc[6])))
-            r[7].write(format_int(row['UPB_TRY']))
-            r[8].write(row.iloc[7])
-            r[9].write(row.iloc[8])
+            r[2].markdown(f"<span style='color:{color}; font-weight:bold;'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
+            r[3].write(row.get('Hasta Adi', ''))
+            r[4].write(row.get('Kategori', ''))
+            r[5].write(row.get('Para Birimi', ''))
+            r[6].write(format_int(row.get('Tutar', 0)))
+            r[7].write(format_int(row.get('UPB_TRY', 0)))
+            r[8].write(row.get('Teknisyen', ''))
+            r[9].write(row.get('Aciklama', ''))
             
             btn_e, btn_d = r[10].columns(2)
             if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
-                @st.dialog(f"Düzenle: {row.iloc[3]}")
-                def edit_modal(r_data):
-                    n_hast = st.text_input("Hasta/Cari Adı", value=r_data.iloc[3])
-                    n_tar = st.date_input("İşlem Tarihi", value=pd.to_datetime(r_data.iloc[1]))
-                    c_m1, c_m2 = st.columns(2)
-                    with c_m1:
-                        n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], 
-                                           index=0 if r_data.iloc[2]=="Gelir" else 1)
-                        n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR"], 
-                                            index=["TRY","USD","EUR"].index(r_data.iloc[5]))
-                    with c_m2:
-                        n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
-                        n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
-                    n_tut = st.number_input("Tutar", value=int(float(r_data.iloc[6])), step=1)
-                    n_acik = st.text_area("Açıklama", value=r_data.iloc[8])
-                    if st.button("Güncelle"):
-                        if n_tut <= 0: 
-                            st.error("Lütfen geçerli bir tutar girin!")
-                        else:
-                            idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
-                            worksheet.update(f"A{idx}:J{idx}", 
-                                          [[r_data.iloc[0], str(n_tar), n_tur, n_hast, 
-                                            n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
-                            st.cache_data.clear()  # Cache temizle
-                            st.rerun()
-                edit_modal(row)
-
+                show_edit_modal(row)
             if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
-                @st.dialog("⚠️ Kayıt Silme Onayı")
-                def delete_modal(r_data):
-                    st.error(f"SİLİNECEK: {r_data.iloc[0]} | {r_data.iloc[3]} | {r_data.iloc[6]} {r_data.iloc[5]}")
-                    if st.button("Evet, Sil", use_container_width=True, type="primary"):
-                        idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
-                        worksheet.update_cell(idx, 10, "X")
-                        st.cache_data.clear()  # Cache temizle
-                        st.rerun()
-                delete_modal(row)
+                show_delete_modal(row)
 
     with col_side:
         st.subheader("➕ Yeni Kayıt")
@@ -305,16 +295,25 @@ if check_password():
                 if f_tut <= 0:
                     st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
                 else:
-                    now = datetime.now()
-                    try: 
-                        next_id = int(pd.to_numeric(df_raw.iloc[:, 0]).max() + 1)
-                    except: 
-                        next_id = 1
-                    
-                    worksheet.append_row([
-                        next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, 
-                        int(f_tut), f_tekn, f_acik, "", 
-                        now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
-                    ])
-                    st.cache_data.clear()  # Cache temizle
-                    st.rerun()
+                    try:
+                        now = datetime.now()
+                        
+                        # DÜZELTME: ID hesaplama güvenli hale getirildi
+                        if len(df_raw) > 0:
+                            existing_ids = pd.to_numeric(df_raw.iloc[:, 0], errors='coerce').dropna()
+                            if len(existing_ids) > 0:
+                                next_id = int(existing_ids.max() + 1)
+                            else:
+                                next_id = 1
+                        else:
+                            next_id = 1
+                        
+                        worksheet.append_row([
+                            next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, 
+                            int(f_tut), f_tekn, f_acik, "", 
+                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
+                        ])
+                        st.success("✅ Kayıt eklendi!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Ekleme hatası: {str(e)}")
