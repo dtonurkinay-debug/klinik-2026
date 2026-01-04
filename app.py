@@ -1,21 +1,20 @@
 import os
+try:
+    import plotly
+except ImportError:
+    os.system('pip install plotly')
+
 import streamlit as st
+from google.oauth2.service_account import Credentials
+import gspread
 import pandas as pd
 from datetime import datetime, date
 import requests
 import xml.etree.ElementTree as ET
 import locale
-from google.oauth2.service_account import Credentials
-import gspread
+import plotly.express as px 
 
-# --- 0. OTOMATIK PAKET KONTROLÜ ---
-try:
-    import plotly.express as px
-except ImportError:
-    os.system('pip install plotly')
-    import plotly.express as px
-
-# --- 1. BÖLGESEL AYAR ---
+# --- 0. BÖLGESEL AYAR ---
 try:
     locale.setlocale(locale.LC_ALL, 'tr_TR.utf8')
 except:
@@ -24,42 +23,23 @@ except:
     except:
         pass
 
-# --- 2. GÜVENLİK ---
+# --- 1. GÜVENLİK ---
 PASSWORD = "klinik2026"
 
 def check_password():
     if "password_correct" not in st.session_state:
-        st.markdown("""
-            <style>
-            .stApp { background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); }
-            .login-container {
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                padding: 40px; background: white; border-radius: 24px;
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); margin-top: 10vh;
-            }
-            </style>
-        """, unsafe_allow_html=True)
-
-        _, col_mid, _ = st.columns([1, 2, 1])
-        with col_mid:
-            st.markdown("""
-                <div class="login-container">
-                    <h1 style='text-align: center; font-size: 50px; margin-bottom: 0;'>🏥</h1>
-                    <h2 style='text-align: center; color: #1E3A8A; margin-top: 10px;'>Klinik 2026</h2>
-                    <p style='text-align: center; color: #64748B; margin-bottom: 30px;'>Hoş geldiniz, şifrenizi giriniz.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            pwd = st.text_input("Şifre", type="password", placeholder="Şifre...", label_visibility="collapsed")
-            if st.button("Sisteme Giriş", use_container_width=True):
-                if pwd == PASSWORD:
-                    st.session_state.password_correct = True
-                    st.rerun()
-                else:
-                    st.error("❌ Hatalı şifre!")
+        st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>🔐 Klinik 2026 Girişi</h2>", unsafe_allow_html=True)
+        pwd = st.text_input("Şifre:", type="password")
+        if st.button("Giriş Yap"):
+            if pwd == PASSWORD:
+                st.session_state.password_correct = True
+                st.rerun()
+            else:
+                st.error("Hatalı şifre!")
         return False
     return True
 
-# --- 3. FONKSİYONLAR ---
+# --- 2. FONKSİYONLAR ---
 @st.cache_data(ttl=3600)
 def get_exchange_rates():
     try:
@@ -94,22 +74,28 @@ def format_int(value):
 def format_rate(value):
     return f"{value:.2f}".replace(".", ",")
 
-# --- 4. ANA PANEL ---
-st.set_page_config(page_title="Klinik 2026 Pro", layout="wide", page_icon="🏥")
+# --- ANA PROGRAM ---
+st.set_page_config(page_title="Klinik 2026 Pro", layout="wide")
 
-if check_password():
-    st.markdown("""
-        <style>
-        .stApp { background-color: #F8FAFC; }
-        [data-testid="stMetric"] {
-            background-color: white; border-radius: 12px; padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-bottom: 4px solid #3B82F6;
-        }
-        .stButton>button { border-radius: 8px; font-weight: 600; }
-        h1, h2, h3 { color: #1E3A8A !important; font-family: 'Inter', sans-serif; }
-        </style>
+# --- CUSTOM CSS ---
+st.markdown("""
+    <style>
+    .stApp { background-color: #F8FAFC; }
+    html, body, [class*="css"]  { font-family: 'Inter', sans-serif; color: #1E293B; }
+    [data-testid="stMetric"] {
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        padding: 15px 20px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        border-bottom: 4px solid #3B82F6;
+    }
+    .stButton>button { border-radius: 8px; font-weight: 500; }
+    h1, h2, h3 { color: #1E3A8A !important; font-weight: 700 !important; }
+    .streamlit-expanderHeader { background-color: #FFFFFF; border-radius: 8px; border: 1px solid #E2E8F0; }
+    </style>
     """, unsafe_allow_html=True)
 
+if check_password():
     df_raw, worksheet = load_data()
     kurlar = get_exchange_rates()
     
@@ -117,49 +103,74 @@ if check_password():
     df = df_raw[df_raw["Silindi"] != "X"].copy()
     df['UPB_TRY'] = df.apply(lambda r: float(r['Tutar']) * kurlar.get(r['Para Birimi'], 1.0), axis=1)
 
-    st.markdown("<h1>🏢 Yönetim Paneli</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: left; margin-bottom: 25px;'>🏢 Klinik 2026 Yönetim Paneli</h1>", unsafe_allow_html=True)
     
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     col_sel, _ = st.columns([1, 4])
     with col_sel:
-        secilen_ay_adi = st.selectbox("📅 Dönem:", aylar, index=datetime.now().month - 1)
+        secilen_ay_adi = st.selectbox("📅 Dönem Seçin:", aylar, index=datetime.now().month - 1)
     secilen_ay_no = aylar.index(secilen_ay_adi) + 1
 
     df_kumulatif = df[df['Tarih_DT'].dt.month <= secilen_ay_no].copy()
     t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
     t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
 
-    m = st.columns(5)
-    m[0].metric("Toplam Gelir", f"{format_int(t_gelir)} ₺")
-    m[1].metric("Toplam Gider", f"{format_int(t_gider)} ₺")
-    m[2].metric("Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
-    m[3].metric("USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
-    m[4].metric("EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("Toplam Gelir", f"{format_int(t_gelir)} ₺")
+    m2.metric("Toplam Gider", f"{format_int(t_gider)} ₺")
+    m3.metric("Net Durum", f"{format_int(t_gelir - t_gider)} ₺")
+    m4.metric("USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+    m5.metric("EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
 
-    # Grafik Paneli (v24'teki 4 grafik düzeni)
-    with st.expander("📊 Grafiksel Analizler"):
+    # --- ANALİZ PANELİ (4 GRAFİK) ---
+    with st.expander("📊 Grafiksel Analiz Paneli"):
         df_trends = df.copy()
         df_trends['Ay'] = df_trends['Tarih_DT'].dt.strftime('%m-%B')
-        ts = df_trends.groupby(['Ay', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
-        c1, c2 = st.columns(2)
-        with c1:
-            st.plotly_chart(px.line(ts, x='Ay', y='UPB_TRY', color='Islem Turu', title="Trend", markers=True, color_discrete_map={"Gelir": "#10B981", "Gider": "#EF4444"}), use_container_width=True)
-        with c2:
-            st.plotly_chart(px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], values='UPB_TRY', names='Kategori', title="Gelir Dağılımı", hole=0.4), use_container_width=True)
+        trend_summary = df_trends.groupby(['Ay', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
+
+        # ÜST SATIR
+        cg1, cg2 = st.columns(2)
+        with cg1:
+            fig_line = px.line(trend_summary, x='Ay', y='UPB_TRY', color='Islem Turu', 
+                              title="Aylık Gelir vs Gider Trendi", markers=True, 
+                              color_discrete_map={"Gelir": "#10B981", "Gider": "#EF4444"},
+                              template="plotly_white")
+            st.plotly_chart(fig_line, use_container_width=True)
+        with cg2:
+            # Kümülatif Kasa Gelişimi
+            df_kasa = trend_summary.pivot(index='Ay', columns='Islem Turu', values='UPB_TRY').fillna(0)
+            df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
+            df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
+            fig_area = px.area(df_kasa.reset_index(), x='Ay', y='Kumulatif', title="Kasa Büyüme Trendi",
+                               color_discrete_sequence=["#3B82F6"], template="plotly_white")
+            st.plotly_chart(fig_area, use_container_width=True)
+
+        # ALT SATIR
+        cg3, cg4 = st.columns(2)
+        with cg3:
+            df_gelir_kat = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]
+            fig_pie_gelir = px.pie(df_gelir_kat, values='UPB_TRY', names='Kategori', title="Gelir Dağılımı",
+                                   hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig_pie_gelir, use_container_width=True)
+        with cg4:
+            df_gider_kat = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]
+            fig_pie_gider = px.pie(df_gider_kat, values='UPB_TRY', names='Kategori', title="Gider Dağılımı",
+                                   hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
+            st.plotly_chart(fig_pie_gider, use_container_width=True)
 
     st.divider()
 
-    # Operasyonel Alan
+    # --- LİSTE VE KAYIT ALANI ---
     col_main, col_side = st.columns([4.2, 1.2])
 
     with col_main:
-        st.subheader(f"📑 {secilen_ay_adi} Hareket Detayları")
+        st.subheader(f"📑 {secilen_ay_adi} Ayı Hareket Detayları")
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
-        search_term = st.text_input("🔍 Hızlı İşlem Arama...", "")
+        search_term = st.text_input("🔍 Hızlı Arama...", "")
         if search_term:
             df_display = df_display[df_display.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)]
 
-        # Manuel Tablo Tasarımı (Hataları önlemek için sütun isimlerini index ile çekiyoruz)
+        # Tablo Başlıkları
         c = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 1.0, 0.8])
         heads = ["ID", "Tarih", "Tür", "Hasta/Cari", "Kat.", "Döv", "Tutar", "UPB", "Açıklama", "İşlem"]
         for col, h in zip(c, heads): col.markdown(f"**{h}**")
@@ -178,23 +189,29 @@ if check_password():
             
             be, bd = r[9].columns(2)
             if be.button("✏️", key=f"e_{row.iloc[0]}"):
-                @st.dialog("Güncelle")
+                @st.dialog("Kayıt Güncelle")
                 def edit_modal(r_data):
-                    n_hast = st.text_input("Ad", value=r_data.iloc[3])
-                    n_tut = st.number_input("Tutar", value=int(float(r_data.iloc[6])))
-                    if st.button("Kaydet"):
-                        idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
-                        worksheet.update_cell(idx, 4, n_hast)
-                        worksheet.update_cell(idx, 7, int(n_tut))
-                        st.rerun()
+                    st.info(f"Düzenlenen: {r_data.iloc[3]}")
+                    n_hast = st.text_input("Hasta/Cari", value=r_data.iloc[3])
+                    n_tar = st.date_input("Tarih", value=pd.to_datetime(r_data.iloc[1]))
+                    n_tut = st.number_input("Tutar", value=int(float(r_data.iloc[6])), step=1)
+                    if st.button("Güncelle"):
+                        if n_tut <= 0: st.error("Sıfır tutar girilemez!")
+                        else:
+                            idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
+                            worksheet.update_cell(idx, 4, n_hast)
+                            worksheet.update_cell(idx, 2, str(n_tar))
+                            worksheet.update_cell(idx, 7, int(n_tut))
+                            st.rerun()
                 edit_modal(row)
             if bd.button("🗑️", key=f"d_{row.iloc[0]}"):
                 idx = df_raw[df_raw.iloc[:,0] == row.iloc[0]].index[0] + 2
                 worksheet.update_cell(idx, 10, "X"); st.rerun()
 
     with col_side:
+        st.markdown("<div style='background-color:#FFFFFF; padding:20px; border-radius:12px; border: 1px solid #E2E8F0;'>", unsafe_allow_html=True)
         st.subheader("➕ Yeni Kayıt")
-        with st.form("yeni_islem_v27"):
+        with st.form("form_v24", clear_on_submit=True):
             f_tar = st.date_input("Tarih", date.today())
             f_tur = st.selectbox("Tür", ["Gelir", "Gider"])
             f_hast = st.text_input("Hasta/Cari Adı")
@@ -203,6 +220,9 @@ if check_password():
             f_tut = st.number_input("Tutar", min_value=0, step=1)
             f_acik = st.text_input("Açıklama")
             if st.form_submit_button("Sisteme Kaydet", use_container_width=True):
-                if f_tut > 0:
-                    worksheet.append_row([int(pd.to_numeric(df_raw.iloc[:, 0]).max() + 1), str(f_tar), f_tur, f_hast, f_kat, f_para, int(f_tut), "YOK", f_acik, "", datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%H:%M:%S")])
+                if f_tut <= 0: st.error("Tutar 0 olamaz!")
+                else:
+                    now = datetime.now()
+                    worksheet.append_row([int(pd.to_numeric(df_raw.iloc[:, 0]).max() + 1), str(f_tar), f_tur, f_hast, f_kat, f_para, int(f_tut), "YOK", f_acik, "", now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")])
                     st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
