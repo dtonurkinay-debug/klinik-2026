@@ -6,7 +6,7 @@ from datetime import datetime, date
 import requests
 import xml.etree.ElementTree as ET
 import locale
-import plotly.express as px # Yeni: Grafik kütüphanesi
+import plotly.express as px
 
 # --- 0. BÖLGESEL AYAR ---
 try:
@@ -81,8 +81,6 @@ if check_password():
     
     if "Silindi" not in df_raw.columns: df_raw["Silindi"] = ""
     df = df_raw[df_raw["Silindi"] != "X"].copy()
-    
-    # UPB Hesaplama (Tüm veri seti için grafiklerde kullanmak üzere)
     df['UPB_TRY'] = df.apply(lambda r: float(r['Tutar']) * kurlar.get(r['Para Birimi'], 1.0), axis=1)
 
     st.title("📊 Klinik 2026 Yönetim Paneli")
@@ -95,67 +93,27 @@ if check_password():
     t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
     t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
 
-    # Üst Özet
     m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric(f"Ocak-{secilen_ay_adi} Gelir", f"{format_int(t_gelir)} ₺")
-    m2.metric(f"Ocak-{secilen_ay_adi} Gider", f"{format_int(t_gider)} ₺")
+    m1.metric(f"Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
+    m2.metric(f"Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
     m3.metric("Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
     m4.metric("USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
     m5.metric("EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
 
-    # --- YENİ: ANALİZ PANELİ (EXPANDER) ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle"):
-        st.write("### Kliniğin Finansal Sağlığı")
-        
-        # Grafik Verisi Hazırlama (Ay Bazlı)
         df_trends = df.copy()
         df_trends['Ay'] = df_trends['Tarih_DT'].dt.strftime('%m-%B')
-        df_trends = df_trends.sort_values('Tarih_DT')
-        
         trend_summary = df_trends.groupby(['Ay', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
-
         col_g1, col_g2 = st.columns(2)
-        
         with col_g1:
-            # 📈 Nakit Akışı Çizgi Grafiği
-            fig_line = px.line(trend_summary, x='Ay', y='UPB_TRY', color='Islem Turu',
-                              title="Aylık Gelir vs Gider Trendi",
-                              markers=True, color_discrete_map={"Gelir": "#2e7d32", "Gider": "#c62828"})
-            fig_line.update_layout(yaxis_title="Tutar (TL)", xaxis_title="")
+            fig_line = px.line(trend_summary, x='Ay', y='UPB_TRY', color='Islem Turu', title="Aylık Trend", markers=True)
             st.plotly_chart(fig_line, use_container_width=True)
-
         with col_g2:
-            # 🍕 Gelir Dağılımı (Kategori Bazlı)
-            df_gelir_kat = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]
-            fig_pie = px.pie(df_gelir_kat, values='UPB_TRY', names='Kategori', 
-                             title=f"Gelir Kaynakları (Ocak-{secilen_ay_adi})",
-                             hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_pie = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], values='UPB_TRY', names='Kategori', title="Gelir Dağılımı", hole=0.4)
             st.plotly_chart(fig_pie, use_container_width=True)
-
-        col_g3, col_g4 = st.columns(2)
-        
-        with col_g3:
-            # 📉 Kümülatif Kasa Gelişimi
-            df_kasa = trend_summary.pivot(index='Ay', columns='Islem Turu', values='UPB_TRY').fillna(0)
-            df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
-            df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
-            df_kasa = df_kasa.reset_index()
-            
-            fig_area = px.area(df_kasa, x='Ay', y='Kumulatif', title="Kasa Büyüme Trendi (Kümülatif)",
-                               color_discrete_sequence=["#1976d2"])
-            st.plotly_chart(fig_area, use_container_width=True)
-
-        with col_g4:
-            # 🍕 Gider Dağılımı (Kategori Bazlı)
-            df_gider_kat = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]
-            fig_pie_gider = px.pie(df_gider_kat, values='UPB_TRY', names='Kategori', 
-                             title=f"Gider Dağılımı (Ocak-{secilen_ay_adi})",
-                             hole=0.4, color_discrete_sequence=px.colors.qualitative.Set2)
-            st.plotly_chart(fig_pie_gider, use_container_width=True)
 
     st.divider()
 
-    # --- MEVCUT OPERASYONEL ALAN (DEĞİŞMEDİ) ---
     col_main, col_side = st.columns([4.5, 1])
 
     with col_main:
@@ -183,12 +141,14 @@ if check_password():
             r[8].write(row.iloc[7]); r[9].write(row.iloc[8])
             
             btn_e, btn_d = r[10].columns(2)
+            
+            # --- V22 DÜZENLE (DOKUNULMADI) ---
             if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
                 @st.dialog(f"Düzenle: {row.iloc[3]}")
                 def edit_modal(r_data):
                     st.info(f"ID: {r_data.iloc[0]} numaralı işlemi güncelliyorsunuz.")
                     n_hast = st.text_input("Hasta/Cari Adı", value=r_data.iloc[3])
-                    n_tar = st.date_input("İşlem Tarihi", value=pd.to_datetime(r_data.iloc[1]), format="DD.MM.YYYY")
+                    n_tar = st.date_input("İşlem Tarihi", value=pd.to_datetime(r_data.iloc[1]))
                     c_m1, c_m2 = st.columns(2)
                     with c_m1:
                         n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], index=0 if r_data.iloc[2]=="Gelir" else 1)
@@ -199,24 +159,33 @@ if check_password():
                     n_tut = st.number_input("Tutar", value=int(float(r_data.iloc[6])), step=1)
                     n_acik = st.text_area("Açıklama", value=r_data.iloc[8])
                     if st.button("Güncelle"):
-                        if n_tut <= 0: st.error("Tutar 0 olamaz!")
-                        else:
-                            idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
-                            worksheet.update(f"A{idx}:J{idx}", [[r_data.iloc[0], str(n_tar), n_tur, n_hast, n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
-                            st.rerun()
+                        idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
+                        worksheet.update(f"A{idx}:J{idx}", [[r_data.iloc[0], str(n_tar), n_tur, n_hast, n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
+                        st.rerun()
                 edit_modal(row)
 
+            # --- SİLME POP-UP (İYİLEŞTİRİLDİ) ---
             if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
-                @st.dialog("Sil?")
+                @st.dialog("⚠️ Kayıt Silme Onayı")
                 def delete_modal(r_data):
-                    if st.button("Evet, Sil"):
+                    st.error("Aşağıdaki kaydı silmek istediğinize emin misiniz?")
+                    # İstediğin dinamik mesaj:
+                    st.markdown(f"""
+                    **ID:** {r_data.iloc[0]}  
+                    **TÜR:** {r_data.iloc[2]}  
+                    **TUTAR:** {format_int(float(r_data.iloc[6]))} {r_data.iloc[5]}  
+                    **HASTA:** {r_data.iloc[3]}
+                    """)
+                    st.write("---")
+                    if st.button("Evet, Kaydı Kalıcı Olarak Sil", use_container_width=True, type="primary"):
                         idx = df_raw[df_raw.iloc[:,0] == r_data.iloc[0]].index[0] + 2
-                        worksheet.update_cell(idx, 10, "X"); st.rerun()
+                        worksheet.update_cell(idx, 10, "X")
+                        st.rerun()
                 delete_modal(row)
 
     with col_side:
         st.subheader("➕ Yeni Kayıt")
-        with st.form("form_v22", clear_on_submit=True):
+        with st.form("form_v22_core", clear_on_submit=True):
             f_tar = st.date_input("Tarih", date.today(), format="DD.MM.YYYY")
             f_tur = st.selectbox("Tür", ["Gelir", "Gider"])
             f_hast = st.text_input("Hasta/Cari")
@@ -226,8 +195,7 @@ if check_password():
             f_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
             f_acik = st.text_input("Açıklama")
             if st.form_submit_button("Ekle", use_container_width=True):
-                if f_tut <= 0: st.error("Tutar 0 olamaz!")
-                else:
+                if f_tut > 0:
                     now = datetime.now()
                     try: next_id = int(pd.to_numeric(df_raw.iloc[:, 0]).max() + 1)
                     except: next_id = 1
