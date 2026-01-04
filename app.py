@@ -99,34 +99,13 @@ def load_custom_css():
         /* Selectbox */
         [data-baseweb="select"] {
             border-radius: 10px;
-            background: white !important;
             border: 1px solid var(--border) !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         }
         
-        /* Selectbox içi düzeltme */
-        [data-baseweb="select"] > div {
-            background: white !important;
-            padding: 8px 12px !important;
-        }
-        
-        /* Selectbox dropdown */
-        [data-baseweb="popover"] {
-            background: white !important;
-        }
-        
-        /* Select menü items */
-        [role="option"] {
-            background: white !important;
-            padding: 10px 12px !important;
-        }
-        
-        [role="option"]:hover {
-            background: #F8F9FA !important;
-        }
-        
-        /* Input Alanları */
-        input, textarea, select {
+        /* Input Alanları - Selectbox hariç */
+        input:not([role="combobox"]), 
+        textarea {
             border-radius: 8px !important;
             border: 1.5px solid var(--border) !important;
             padding: 12px !important;
@@ -134,7 +113,8 @@ def load_custom_css():
             background: white !important;
         }
         
-        input:focus, textarea:focus {
+        input:not([role="combobox"]):focus, 
+        textarea:focus {
             border-color: var(--accent) !important;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.08) !important;
         }
