@@ -558,7 +558,126 @@ if check_password():
         # Modal fonksiyonları
         def show_edit_modal(row_data):
             @st.dialog(f"✏️ Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
-            def edit_modal():
+            def             edit_modal()
+
+        def show_delete_modal(row_data):
+            @st.dialog("⚠️ Kayıt Silme Onayı")
+            def delete_modal():
+                row_id = row_data.get('ID', '')
+                hasta = row_data.get('Hasta Adi', '')
+                tutar = row_data.get('Tutar', '0')
+                para = row_data.get('Para Birimi', 'TRY')
+                
+                st.error(f"**SİLİNECEK:** {row_id} | {hasta} | {tutar} {para}")
+                if st.button("🗑️ Evet, Sil", use_container_width=True, type="primary"):
+                    try:
+                        matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
+                        if len(matching_rows) > 0:
+                            idx = matching_rows.index[0] + 2
+                            
+                            # Direkt bağlantı aç
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"], 
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            
+                            sheet.update_cell(idx, 10, "X")
+                            st.cache_data.clear()
+                            st.success("✅ Silme başarılı!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Kayıt bulunamadı!")
+                    except Exception as e:
+                        st.error(f"❌ Silme hatası: {str(e)}")
+            delete_modal()
+
+        # Satırları göster
+        for _, row in df_display.iterrows():
+            is_gelir = row.get('Islem Turu') == "Gelir"
+            badge_class = "gelir-badge" if is_gelir else "gider-badge"
+            r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
+            
+            r[0].write(row.iloc[0])
+            r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
+            r[2].markdown(f"<span class='{badge_class}'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
+            r[3].write(row.get('Hasta Adi', ''))
+            r[4].write(row.get('Kategori', ''))
+            r[5].write(row.get('Para Birimi', ''))
+            r[6].write(format_int(row.get('Tutar', 0)))
+            r[7].write(format_int(row.get('UPB_TRY', 0)))
+            r[8].write(row.get('Teknisyen', ''))
+            r[9].write(row.get('Aciklama', ''))
+            
+            btn_e, btn_d = r[10].columns(2)
+            if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
+                show_edit_modal(row)
+            if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
+                show_delete_modal(row)
+
+    with col_side:
+        st.subheader("➕ Yeni Kayıt")
+        with st.form("form_v22_final", clear_on_submit=True):
+            f_tar = st.date_input("📅 Tarih", date.today())
+            f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
+            f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
+            f_kat = st.selectbox("📁 Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
+            f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR"])
+            f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
+            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK", "Ali", "Murat"])
+            f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
+            
+            submitted = st.form_submit_button("✅ Ekle", use_container_width=True)
+            if submitted:
+                if f_tut <= 0:
+                    st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
+                else:
+                    try:
+                        now = datetime.now()
+                        
+                        # ID hesaplarken ACILIS satırlarını hariç tut
+                        if len(df_raw) > 0:
+                            normal_rows = df_raw[df_raw.get('Islem Turu', '') != 'ACILIS']
+                            if len(normal_rows) > 0:
+                                existing_ids = pd.to_numeric(normal_rows.iloc[:, 0], errors='coerce').dropna()
+                                if len(existing_ids) > 0:
+                                    next_id = int(existing_ids.max() + 1)
+                                else:
+                                    next_id = 1
+                            else:
+                                next_id = 1
+                        else:
+                            next_id = 1
+                        
+                        new_row = [
+                            next_id, 
+                            f_tar.strftime('%Y-%m-%d'),  # ISO format Excel için
+                            f_tur, f_hast, f_kat, f_para, 
+                            int(f_tut), f_tekn, f_acik, "", 
+                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")  # ISO format
+                        ]
+                        
+                        # Direkt yeni bağlantı aç
+                        try:
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"], 
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            sheet.append_row(new_row)
+                            
+                            # Cache'i temizle ve sayfayı yenile
+                            st.cache_data.clear()
+                            st.success("✅ Kayıt eklendi!")
+                            import time
+                            time.sleep(0.5)  # Kısa bir bekleme
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Ekleme hatası detay: {str(e)}")
+                    except Exception as e:
+                        st.error(f"❌ Ekleme hatası: {str(e)}"):
                 n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
                 
                 try:
@@ -619,4 +738,5 @@ if check_password():
                                 st.rerun()
                             else:
                                 st.error("❌ Kayıt bulunamadı!")
-                        except Exception
+                        except Exception as e:
+                            st.error(f"❌ Güncelleme hatası: {str(e)}")
