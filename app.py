@@ -517,7 +517,17 @@ if check_password():
 
     with col_main:
         st.subheader(f"📑 {secilen_ay_adi} Ayı Hareketleri")
+        
+        # DEBUG
+        st.caption(f"🔍 Toplam {len(df)} kayıt | Seçilen ay: {secilen_ay_no} | Filtre sonucu: ...")
+        
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
+        
+        st.caption(f"🔍 {len(df_display)} kayıt bu ayda")
+        
+        # Tarih kontrolü
+        if len(df) > 0:
+            st.caption(f"🔍 İlk kayıt tarihi: {df['Tarih_DT'].min()} | Son kayıt tarihi: {df['Tarih_DT'].max()}")
         
         search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         if search_term:
