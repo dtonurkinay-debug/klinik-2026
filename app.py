@@ -370,6 +370,7 @@ def get_gspread_client():
         st.error(f"❌ Google Sheets bağlantısı başarısız: {str(e)}")
         st.stop()
 
+@st.cache_data(ttl=60)  # Cache süresini 5 dakikadan 1 dakikaya düşürdüm
 def load_data():
     try:
         client = get_gspread_client()
@@ -381,7 +382,10 @@ def load_data():
             return pd.DataFrame(), sheet
         
         df = pd.DataFrame(data[1:], columns=data[0])
-        df['Tarih_DT'] = pd.to_datetime(df['Tarih'], errors='coerce')
+        
+        # Tarih parse - ISO format için özel
+        df['Tarih_DT'] = pd.to_datetime(df['Tarih'], format='%Y-%m-%d', errors='coerce')
+        
         df['Tutar'] = pd.to_numeric(df['Tutar'], errors='coerce').fillna(0)
         
         sort_cols = ['Tarih_DT']
@@ -415,7 +419,29 @@ if check_password():
     kurlar = get_exchange_rates()
     
     if "Silindi" not in df_raw.columns: df_raw["Silindi"] = ""
-    df = df_raw[df_raw["Silindi"] != "X"].copy()
+    
+    # Açılış bakiyelerini ayır
+    df_acilis = df_raw[(df_raw["Islem Turu"] == "ACILIS") & (df_raw["Silindi"] != "X")].copy()
+    
+    # Normal işlemleri filtrele (Açılış ve Silindi hariç)
+    df = df_raw[(df_raw["Islem Turu"] != "ACILIS") & (df_raw["Silindi"] != "X")].copy()
+    
+    # Açılış bakiyesini TRY'ye çevir
+    def calculate_acilis_bakiye():
+        if len(df_acilis) > 0:
+            total_try = 0
+            for _, row in df_acilis.iterrows():
+                try:
+                    tutar = float(row['Tutar'])
+                    para = row['Para Birimi']
+                    kur = kurlar.get(para, 1.0)
+                    total_try += tutar * kur
+                except:
+                    pass
+            return total_try
+        return 0
+    
+    acilis_bakiye = calculate_acilis_bakiye()
     
     # Güvenli UPB hesaplama
     def safe_upb_calc(row):
@@ -438,13 +464,17 @@ if check_password():
     df_kumulatif = df[df['Tarih_DT'].dt.month <= secilen_ay_no].copy()
     t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
     t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
+    
+    # Net kasa = Açılış + Gelir - Gider
+    net_kasa = acilis_bakiye + t_gelir - t_gider
 
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric(f"💰 Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
-    m2.metric(f"💸 Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
-    m3.metric("💵 Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
-    m4.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
-    m5.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1.metric(f"💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye)} ₺")
+    m2.metric(f"💰 Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
+    m3.metric(f"💸 Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
+    m4.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
+    m5.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+    m6.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
 
     # --- ANALİZ PANELİ ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
@@ -490,7 +520,17 @@ if check_password():
 
     with col_main:
         st.subheader(f"📑 {secilen_ay_adi} Ayı Hareketleri")
+        
+        # DEBUG
+        st.caption(f"🔍 Toplam {len(df)} kayıt | Seçilen ay: {secilen_ay_no} | Filtre sonucu: ...")
+        
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
+        
+        st.caption(f"🔍 {len(df_display)} kayıt bu ayda")
+        
+        # Tarih kontrolü
+        if len(df) > 0:
+            st.caption(f"🔍 İlk kayıt tarihi: {df['Tarih_DT'].min()} | Son kayıt tarihi: {df['Tarih_DT'].max()}")
         
         search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         if search_term:
@@ -540,11 +580,26 @@ if check_password():
                             matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
                             if len(matching_rows) > 0:
                                 idx = matching_rows.index[0] + 2
-                                worksheet.update(f"A{idx}:J{idx}", 
-                                              [[row_id, str(n_tar), n_tur, n_hast, 
-                                                n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
-                                st.success("✅ Güncelleme başarılı!")
-                                st.rerun()
+                                
+                                # Fresh worksheet al
+                                fresh_sheet = get_fresh_worksheet()
+                                if fresh_sheet:
+                                    # Mevcut yaratma bilgilerini al
+                                    existing_row = fresh_sheet.row_values(idx)
+                                    yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
+                                    yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
+                                    
+                                    fresh_sheet.update(f"A{idx}:L{idx}", 
+                                                  [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,  # ISO format
+                                                    n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
+                                                    yaratma_tarihi, yaratma_saati]])
+                                    st.cache_data.clear()
+                                    st.success("✅ Güncelleme başarılı!")
+                                    import time
+                                    time.sleep(0.5)
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Worksheet bağlantısı kurulamadı!")
                             else:
                                 st.error("❌ Kayıt bulunamadı!")
                         except Exception as e:
@@ -565,9 +620,16 @@ if check_password():
                         matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
                         if len(matching_rows) > 0:
                             idx = matching_rows.index[0] + 2
-                            worksheet.update_cell(idx, 10, "X")
-                            st.success("✅ Silme başarılı!")
-                            st.rerun()
+                            
+                            # Fresh worksheet al
+                            fresh_sheet = get_fresh_worksheet()
+                            if fresh_sheet:
+                                fresh_sheet.update_cell(idx, 10, "X")
+                                st.cache_data.clear()
+                                st.success("✅ Silme başarılı!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Worksheet bağlantısı kurulamadı!")
                         else:
                             st.error("❌ Kayıt bulunamadı!")
                     except Exception as e:
@@ -617,21 +679,45 @@ if check_password():
                     try:
                         now = datetime.now()
                         
+                        # ID hesaplarken ACILIS satırlarını hariç tut
                         if len(df_raw) > 0:
-                            existing_ids = pd.to_numeric(df_raw.iloc[:, 0], errors='coerce').dropna()
-                            if len(existing_ids) > 0:
-                                next_id = int(existing_ids.max() + 1)
+                            normal_rows = df_raw[df_raw.get('Islem Turu', '') != 'ACILIS']
+                            if len(normal_rows) > 0:
+                                existing_ids = pd.to_numeric(normal_rows.iloc[:, 0], errors='coerce').dropna()
+                                if len(existing_ids) > 0:
+                                    next_id = int(existing_ids.max() + 1)
+                                else:
+                                    next_id = 1
                             else:
                                 next_id = 1
                         else:
                             next_id = 1
                         
-                        worksheet.append_row([
-                            next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, 
+                        new_row = [
+                            next_id, 
+                            f_tar.strftime('%Y-%m-%d'),  # ISO format Excel için
+                            f_tur, f_hast, f_kat, f_para, 
                             int(f_tut), f_tekn, f_acik, "", 
-                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
-                        ])
-                        st.success("✅ Kayıt eklendi!")
-                        st.rerun()
+                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")  # ISO format
+                        ]
+                        
+                        # Direkt yeni bağlantı aç
+                        try:
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"], 
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            sheet.append_row(new_row)
+                            
+                            # Cache'i temizle ve sayfayı yenile
+                            st.cache_data.clear()
+                            st.success("✅ Kayıt eklendi!")
+                            import time
+                            time.sleep(0.5)  # Kısa bir bekleme
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Ekleme hatası detay: {str(e)}")
                     except Exception as e:
                         st.error(f"❌ Ekleme hatası: {str(e)}")
