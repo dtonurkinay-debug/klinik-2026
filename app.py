@@ -415,7 +415,29 @@ if check_password():
     kurlar = get_exchange_rates()
     
     if "Silindi" not in df_raw.columns: df_raw["Silindi"] = ""
-    df = df_raw[df_raw["Silindi"] != "X"].copy()
+    
+    # Açılış bakiyelerini ayır
+    df_acilis = df_raw[(df_raw["Islem Turu"] == "ACILIS") & (df_raw["Silindi"] != "X")].copy()
+    
+    # Normal işlemleri filtrele (Açılış ve Silindi hariç)
+    df = df_raw[(df_raw["Islem Turu"] != "ACILIS") & (df_raw["Silindi"] != "X")].copy()
+    
+    # Açılış bakiyesini TRY'ye çevir
+    def calculate_acilis_bakiye():
+        if len(df_acilis) > 0:
+            total_try = 0
+            for _, row in df_acilis.iterrows():
+                try:
+                    tutar = float(row['Tutar'])
+                    para = row['Para Birimi']
+                    kur = kurlar.get(para, 1.0)
+                    total_try += tutar * kur
+                except:
+                    pass
+            return total_try
+        return 0
+    
+    acilis_bakiye = calculate_acilis_bakiye()
     
     # Güvenli UPB hesaplama
     def safe_upb_calc(row):
@@ -438,13 +460,17 @@ if check_password():
     df_kumulatif = df[df['Tarih_DT'].dt.month <= secilen_ay_no].copy()
     t_gelir = df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
     t_gider = df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
+    
+    # Net kasa = Açılış + Gelir - Gider
+    net_kasa = acilis_bakiye + t_gelir - t_gider
 
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric(f"💰 Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
-    m2.metric(f"💸 Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
-    m3.metric("💵 Net Kasa", f"{format_int(t_gelir - t_gider)} ₺")
-    m4.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
-    m5.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1.metric(f"💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye)} ₺")
+    m2.metric(f"💰 Gelir (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gelir)} ₺")
+    m3.metric(f"💸 Gider (Oca-{secilen_ay_adi[:3]})", f"{format_int(t_gider)} ₺")
+    m4.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
+    m5.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+    m6.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
 
     # --- ANALİZ PANELİ ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
@@ -617,10 +643,15 @@ if check_password():
                     try:
                         now = datetime.now()
                         
+                        # ID hesaplarken ACILIS satırlarını hariç tut
                         if len(df_raw) > 0:
-                            existing_ids = pd.to_numeric(df_raw.iloc[:, 0], errors='coerce').dropna()
-                            if len(existing_ids) > 0:
-                                next_id = int(existing_ids.max() + 1)
+                            normal_rows = df_raw[df_raw.get('Islem Turu', '') != 'ACILIS']
+                            if len(normal_rows) > 0:
+                                existing_ids = pd.to_numeric(normal_rows.iloc[:, 0], errors='coerce').dropna()
+                                if len(existing_ids) > 0:
+                                    next_id = int(existing_ids.max() + 1)
+                                else:
+                                    next_id = 1
                             else:
                                 next_id = 1
                         else:
