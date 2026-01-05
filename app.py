@@ -578,7 +578,6 @@ if check_password():
                                                 n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
                                                 yaratma_tarihi, yaratma_saati]])
                                 st.cache_data.clear()
-                                st.cache_resource.clear()
                                 st.success("✅ Güncelleme başarılı!")
                                 st.rerun()
                             else:
@@ -603,7 +602,6 @@ if check_password():
                             idx = matching_rows.index[0] + 2
                             worksheet.update_cell(idx, 10, "X")
                             st.cache_data.clear()
-                            st.cache_resource.clear()
                             st.success("✅ Silme başarılı!")
                             st.rerun()
                         else:
@@ -678,8 +676,7 @@ if check_password():
                         ]
                         
                         worksheet.append_row(new_row)
-                        st.cache_data.clear()  # Veri cache'ini temizle
-                        st.cache_resource.clear()  # GSpread client cache'ini de temizle
+                        st.cache_data.clear()  # Sadece veri cache'ini temizle
                         st.success("✅ Kayıt eklendi!")
                         st.rerun()
                     except Exception as e:
