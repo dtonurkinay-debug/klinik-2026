@@ -424,6 +424,9 @@ if check_password():
     df_acilis = df_raw[(df_raw["Islem Turu"] == "ACILIS") & (df_raw["Silindi"] != "X")].copy()
     
     # Normal işlemleri filtrele (Açılış ve Silindi hariç)
+    aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
+secilen_ay_no = aylar.index(secilen_ay_adi) + 1
  # Açılış bakiyesini hesapla + Para birimi detayları
     if secilen_ay_no == 1:
         acilis_bakiye_ay = acilis_bakiye
