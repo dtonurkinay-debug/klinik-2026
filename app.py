@@ -581,25 +581,28 @@ if check_password():
                             if len(matching_rows) > 0:
                                 idx = matching_rows.index[0] + 2
                                 
-                                # Fresh worksheet al
-                                fresh_sheet = get_fresh_worksheet()
-                                if fresh_sheet:
-                                    # Mevcut yaratma bilgilerini al
-                                    existing_row = fresh_sheet.row_values(idx)
-                                    yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
-                                    yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
-                                    
-                                    fresh_sheet.update(f"A{idx}:L{idx}", 
-                                                  [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,  # ISO format
-                                                    n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
-                                                    yaratma_tarihi, yaratma_saati]])
-                                    st.cache_data.clear()
-                                    st.success("✅ Güncelleme başarılı!")
-                                    import time
-                                    time.sleep(0.5)
-                                    st.rerun()
-                                else:
-                                    st.error("❌ Worksheet bağlantısı kurulamadı!")
+                                # Direkt bağlantı aç
+                                creds = Credentials.from_service_account_info(
+                                    st.secrets["gcp_service_account"], 
+                                    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                                )
+                                client = gspread.authorize(creds)
+                                sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                                
+                                # Mevcut yaratma bilgilerini al
+                                existing_row = sheet.row_values(idx)
+                                yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
+                                yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
+                                
+                                sheet.update(f"A{idx}:L{idx}", 
+                                          [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,  # ISO format
+                                            n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
+                                            yaratma_tarihi, yaratma_saati]])
+                                st.cache_data.clear()
+                                st.success("✅ Güncelleme başarılı!")
+                                import time
+                                time.sleep(0.5)
+                                st.rerun()
                             else:
                                 st.error("❌ Kayıt bulunamadı!")
                         except Exception as e:
