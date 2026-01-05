@@ -686,14 +686,20 @@ if check_password():
                             now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
                         ]
                         
-                        # Fresh worksheet al
-                        fresh_sheet = get_fresh_worksheet()
-                        if fresh_sheet:
-                            fresh_sheet.append_row(new_row)
-                            st.cache_data.clear()  # Sadece veri cache'ini temizle
+                        # Direkt yeni bağlantı aç
+                        try:
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"], 
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            sheet.append_row(new_row)
+                            
+                            st.cache_data.clear()
                             st.success("✅ Kayıt eklendi!")
                             st.rerun()
-                        else:
-                            st.error("❌ Worksheet bağlantısı kurulamadı!")
+                        except Exception as e:
+                            st.error(f"❌ Ekleme hatası detay: {str(e)}")
                     except Exception as e:
                         st.error(f"❌ Ekleme hatası: {str(e)}")
