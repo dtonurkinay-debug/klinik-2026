@@ -461,21 +461,21 @@ if check_password():
     secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
     secilen_ay_no = aylar.index(secilen_ay_adi) + 1
 
-    # Seçilen ayın verileri (sadece o ay)
-    df_secilen_ay = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
-    t_gelir = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
-    t_gider = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
-    
-    # Açılış bakiyesi hesaplama
+    # Açılış bakiyesini hesapla
     if secilen_ay_no == 1:
-        # Ocak için: ACILIS kayıtlarından al
+        # Ocak: Excel'deki ACILIS kayıtlarından al
         acilis_bakiye_ay = acilis_bakiye
     else:
-        # Diğer aylar için: Önceki ayın net kasası
+        # Diğer aylar: Önceki ayın net kasası
         df_onceki_aylar = df[df['Tarih_DT'].dt.month < secilen_ay_no].copy()
         onceki_gelir = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
         onceki_gider = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
         acilis_bakiye_ay = acilis_bakiye + onceki_gelir - onceki_gider
+    
+    # Sadece seçilen ayın gelir/gideri
+    df_secilen_ay = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
+    t_gelir = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
+    t_gider = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
     
     # Net kasa = Açılış + Gelir - Gider
     net_kasa = acilis_bakiye_ay + t_gelir - t_gider
@@ -504,9 +504,7 @@ if check_password():
             fig1.update_layout(plot_bgcolor='white', paper_bgcolor='white')
             st.plotly_chart(fig1, use_container_width=True)
         with g2:
-            # Seçilen aya kadar kümülatif gelir dağılımı
-            df_kumulatif_grafik = df[df['Tarih_DT'].dt.month <= secilen_ay_no].copy()
-            fig2 = px.pie(df_kumulatif_grafik[df_kumulatif_grafik["Islem Turu"] == "Gelir"], 
+            fig2 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], 
                          values='UPB_TRY', names='Kategori', 
                          title="Gelir Dağılımı (Kümülatif)", hole=0.4)
             fig2.update_layout(plot_bgcolor='white', paper_bgcolor='white')
@@ -522,7 +520,7 @@ if check_password():
                 fig3.update_layout(plot_bgcolor='white', paper_bgcolor='white')
                 st.plotly_chart(fig3, use_container_width=True)
         with g4:
-            fig4 = px.pie(df_kumulatif_grafik[df_kumulatif_grafik["Islem Turu"] == "Gider"], 
+            fig4 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"], 
                          values='UPB_TRY', names='Kategori', 
                          title="Gider Dağılımı (Kümülatif)", hole=0.4)
             fig4.update_layout(plot_bgcolor='white', paper_bgcolor='white')
@@ -558,7 +556,70 @@ if check_password():
         # Modal fonksiyonları
         def show_edit_modal(row_data):
             @st.dialog(f"✏️ Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
-            def             edit_modal()
+            def edit_modal():
+                n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
+                
+                try:
+                    default_date = pd.to_datetime(row_data['Tarih']).date()
+                except:
+                    default_date = date.today()
+                n_tar = st.date_input("İşlem Tarihi", value=default_date)
+                
+                c_m1, c_m2 = st.columns(2)
+                with c_m1:
+                    n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], 
+                                       index=0 if row_data.get('Islem Turu')=="Gelir" else 1)
+                    curr_para = row_data.get('Para Birimi', 'TRY')
+                    para_idx = ["TRY","USD","EUR"].index(curr_para) if curr_para in ["TRY","USD","EUR"] else 0
+                    n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR"], index=para_idx)
+                with c_m2:
+                    n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
+                    n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
+                
+                try:
+                    default_tutar = int(float(row_data.get('Tutar', 0)))
+                except:
+                    default_tutar = 0
+                n_tut = st.number_input("Tutar", value=default_tutar, step=1)
+                n_acik = st.text_area("Açıklama", value=str(row_data.get('Aciklama', '')))
+                
+                if st.button("💾 Güncelle", use_container_width=True):
+                    if n_tut <= 0: 
+                        st.error("Lütfen geçerli bir tutar girin!")
+                    else:
+                        try:
+                            row_id = row_data.get('ID', '')
+                            matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
+                            if len(matching_rows) > 0:
+                                idx = matching_rows.index[0] + 2
+                                
+                                # Direkt bağlantı aç
+                                creds = Credentials.from_service_account_info(
+                                    st.secrets["gcp_service_account"], 
+                                    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                                )
+                                client = gspread.authorize(creds)
+                                sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                                
+                                # Mevcut yaratma bilgilerini al
+                                existing_row = sheet.row_values(idx)
+                                yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
+                                yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
+                                
+                                sheet.update(f"A{idx}:L{idx}", 
+                                          [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,  # ISO format
+                                            n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
+                                            yaratma_tarihi, yaratma_saati]])
+                                st.cache_data.clear()
+                                st.success("✅ Güncelleme başarılı!")
+                                import time
+                                time.sleep(0.5)
+                                st.rerun()
+                            else:
+                                st.error("❌ Kayıt bulunamadı!")
+                        except Exception as e:
+                            st.error(f"❌ Güncelleme hatası: {str(e)}")
+            edit_modal()
 
         def show_delete_modal(row_data):
             @st.dialog("⚠️ Kayıt Silme Onayı")
@@ -575,18 +636,15 @@ if check_password():
                         if len(matching_rows) > 0:
                             idx = matching_rows.index[0] + 2
                             
-                            # Direkt bağlantı aç
-                            creds = Credentials.from_service_account_info(
-                                st.secrets["gcp_service_account"], 
-                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
-                            )
-                            client = gspread.authorize(creds)
-                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
-                            
-                            sheet.update_cell(idx, 10, "X")
-                            st.cache_data.clear()
-                            st.success("✅ Silme başarılı!")
-                            st.rerun()
+                            # Fresh worksheet al
+                            fresh_sheet = get_fresh_worksheet()
+                            if fresh_sheet:
+                                fresh_sheet.update_cell(idx, 10, "X")
+                                st.cache_data.clear()
+                                st.success("✅ Silme başarılı!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Worksheet bağlantısı kurulamadı!")
                         else:
                             st.error("❌ Kayıt bulunamadı!")
                     except Exception as e:
@@ -677,66 +735,4 @@ if check_password():
                         except Exception as e:
                             st.error(f"❌ Ekleme hatası detay: {str(e)}")
                     except Exception as e:
-                        st.error(f"❌ Ekleme hatası: {str(e)}"):
-                n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
-                
-                try:
-                    default_date = pd.to_datetime(row_data['Tarih']).date()
-                except:
-                    default_date = date.today()
-                n_tar = st.date_input("İşlem Tarihi", value=default_date)
-                
-                c_m1, c_m2 = st.columns(2)
-                with c_m1:
-                    n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], 
-                                       index=0 if row_data.get('Islem Turu')=="Gelir" else 1)
-                    curr_para = row_data.get('Para Birimi', 'TRY')
-                    para_idx = ["TRY","USD","EUR"].index(curr_para) if curr_para in ["TRY","USD","EUR"] else 0
-                    n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR"], index=para_idx)
-                with c_m2:
-                    n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
-                    n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
-                
-                try:
-                    default_tutar = int(float(row_data.get('Tutar', 0)))
-                except:
-                    default_tutar = 0
-                n_tut = st.number_input("Tutar", value=default_tutar, step=1)
-                n_acik = st.text_area("Açıklama", value=str(row_data.get('Aciklama', '')))
-                
-                if st.button("💾 Güncelle", use_container_width=True):
-                    if n_tut <= 0: 
-                        st.error("Lütfen geçerli bir tutar girin!")
-                    else:
-                        try:
-                            row_id = row_data.get('ID', '')
-                            matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
-                            if len(matching_rows) > 0:
-                                idx = matching_rows.index[0] + 2
-                                
-                                # Direkt bağlantı aç
-                                creds = Credentials.from_service_account_info(
-                                    st.secrets["gcp_service_account"], 
-                                    scopes=["https://www.googleapis.com/auth/spreadsheets"]
-                                )
-                                client = gspread.authorize(creds)
-                                sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
-                                
-                                # Mevcut yaratma bilgilerini al
-                                existing_row = sheet.row_values(idx)
-                                yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
-                                yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
-                                
-                                sheet.update(f"A{idx}:L{idx}", 
-                                          [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,  # ISO format
-                                            n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
-                                            yaratma_tarihi, yaratma_saati]])
-                                st.cache_data.clear()
-                                st.success("✅ Güncelleme başarılı!")
-                                import time
-                                time.sleep(0.5)
-                                st.rerun()
-                            else:
-                                st.error("❌ Kayıt bulunamadı!")
-                        except Exception as e:
-                            st.error(f"❌ Güncelleme hatası: {str(e)}")
+                        st.error(f"❌ Ekleme hatası: {str(e)}")
