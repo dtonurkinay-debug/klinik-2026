@@ -567,9 +567,16 @@ if check_password():
                             matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
                             if len(matching_rows) > 0:
                                 idx = matching_rows.index[0] + 2
-                                worksheet.update(f"A{idx}:J{idx}", 
-                                              [[row_id, n_tar.strftime('%d.%m.%Y'), n_tur, n_hast,  # Tarih formatı düzeltildi
-                                                n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
+                                # Tüm sütunları güncelle (A-L: 12 sütun)
+                                # Yaratma Tarihi ve Saati değişmeyecek, mevcut değerleri koru
+                                existing_row = worksheet.row_values(idx)
+                                yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
+                                yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
+                                
+                                worksheet.update(f"A{idx}:L{idx}", 
+                                              [[row_id, n_tar.strftime('%d.%m.%Y'), n_tur, n_hast,
+                                                n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
+                                                yaratma_tarihi, yaratma_saati]])
                                 st.cache_data.clear()
                                 st.cache_resource.clear()
                                 st.success("✅ Güncelleme başarılı!")
