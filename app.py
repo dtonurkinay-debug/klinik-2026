@@ -568,7 +568,7 @@ if check_password():
                             if len(matching_rows) > 0:
                                 idx = matching_rows.index[0] + 2
                                 worksheet.update(f"A{idx}:J{idx}", 
-                                              [[row_id, str(n_tar), n_tur, n_hast, 
+                                              [[row_id, n_tar.strftime('%d.%m.%Y'), n_tur, n_hast,  # Tarih formatı düzeltildi
                                                 n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
                                 st.success("✅ Güncelleme başarılı!")
                                 st.rerun()
@@ -658,11 +658,15 @@ if check_password():
                         else:
                             next_id = 1
                         
-                        worksheet.append_row([
-                            next_id, str(f_tar), f_tur, f_hast, f_kat, f_para, 
+                        new_row = [
+                            next_id, 
+                            f_tar.strftime('%d.%m.%Y'),  # DD.MM.YYYY formatı
+                            f_tur, f_hast, f_kat, f_para, 
                             int(f_tut), f_tekn, f_acik, "", 
                             now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
-                        ])
+                        ]
+                        
+                        worksheet.append_row(new_row)
                         st.cache_data.clear()  # Cache'i temizle
                         st.success("✅ Kayıt eklendi!")
                         st.rerun()
