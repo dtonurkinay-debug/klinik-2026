@@ -504,9 +504,9 @@ if check_password():
             fig1.update_layout(plot_bgcolor='white', paper_bgcolor='white')
             st.plotly_chart(fig1, use_container_width=True)
         with g2:
-            fig2 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gelir"], 
+            fig2 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"], 
                          values='UPB_TRY', names='Kategori', 
-                         title="Gelir Dağılımı (Kümülatif)", hole=0.4)
+                         title=f"Gelir Dağılımı ({secilen_ay_adi})", hole=0.4)
             fig2.update_layout(plot_bgcolor='white', paper_bgcolor='white')
             st.plotly_chart(fig2, use_container_width=True)
 
@@ -520,9 +520,9 @@ if check_password():
                 fig3.update_layout(plot_bgcolor='white', paper_bgcolor='white')
                 st.plotly_chart(fig3, use_container_width=True)
         with g4:
-            fig4 = px.pie(df_kumulatif[df_kumulatif["Islem Turu"] == "Gider"], 
+            fig4 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"], 
                          values='UPB_TRY', names='Kategori', 
-                         title="Gider Dağılımı (Kümülatif)", hole=0.4)
+                         title=f"Gider Dağılımı ({secilen_ay_adi})", hole=0.4)
             fig4.update_layout(plot_bgcolor='white', paper_bgcolor='white')
             st.plotly_chart(fig4, use_container_width=True)
 
