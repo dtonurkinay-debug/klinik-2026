@@ -680,10 +680,10 @@ if check_password():
                         
                         new_row = [
                             next_id, 
-                            f_tar.strftime('%d.%m.%Y'),  # DD.MM.YYYY formatı
+                            f_tar.strftime('%d.%m.%Y'),  # DD.MM.YYYY formatı (Tarih sütunu)
                             f_tur, f_hast, f_kat, f_para, 
                             int(f_tut), f_tekn, f_acik, "", 
-                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
+                            now.strftime("%d.%m.%Y"), now.strftime("%H:%M:%S")  # Yaratma tarihi de DD.MM.YYYY
                         ]
                         
                         # Direkt yeni bağlantı aç
@@ -696,8 +696,11 @@ if check_password():
                             sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
                             sheet.append_row(new_row)
                             
+                            # Cache'i temizle ve sayfayı yenile
                             st.cache_data.clear()
                             st.success("✅ Kayıt eklendi!")
+                            import time
+                            time.sleep(0.5)  # Kısa bir bekleme
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ Ekleme hatası detay: {str(e)}")
