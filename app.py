@@ -567,19 +567,24 @@ if check_password():
                             matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
                             if len(matching_rows) > 0:
                                 idx = matching_rows.index[0] + 2
-                                # Tüm sütunları güncelle (A-L: 12 sütun)
-                                # Yaratma Tarihi ve Saati değişmeyecek, mevcut değerleri koru
-                                existing_row = worksheet.row_values(idx)
-                                yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
-                                yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
                                 
-                                worksheet.update(f"A{idx}:L{idx}", 
-                                              [[row_id, n_tar.strftime('%d.%m.%Y'), n_tur, n_hast,
-                                                n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
-                                                yaratma_tarihi, yaratma_saati]])
-                                st.cache_data.clear()
-                                st.success("✅ Güncelleme başarılı!")
-                                st.rerun()
+                                # Fresh worksheet al
+                                fresh_sheet = get_fresh_worksheet()
+                                if fresh_sheet:
+                                    # Mevcut yaratma bilgilerini al
+                                    existing_row = fresh_sheet.row_values(idx)
+                                    yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
+                                    yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
+                                    
+                                    fresh_sheet.update(f"A{idx}:L{idx}", 
+                                                  [[row_id, n_tar.strftime('%d.%m.%Y'), n_tur, n_hast,
+                                                    n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
+                                                    yaratma_tarihi, yaratma_saati]])
+                                    st.cache_data.clear()
+                                    st.success("✅ Güncelleme başarılı!")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Worksheet bağlantısı kurulamadı!")
                             else:
                                 st.error("❌ Kayıt bulunamadı!")
                         except Exception as e:
@@ -600,10 +605,16 @@ if check_password():
                         matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
                         if len(matching_rows) > 0:
                             idx = matching_rows.index[0] + 2
-                            worksheet.update_cell(idx, 10, "X")
-                            st.cache_data.clear()
-                            st.success("✅ Silme başarılı!")
-                            st.rerun()
+                            
+                            # Fresh worksheet al
+                            fresh_sheet = get_fresh_worksheet()
+                            if fresh_sheet:
+                                fresh_sheet.update_cell(idx, 10, "X")
+                                st.cache_data.clear()
+                                st.success("✅ Silme başarılı!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Worksheet bağlantısı kurulamadı!")
                         else:
                             st.error("❌ Kayıt bulunamadı!")
                     except Exception as e:
@@ -675,9 +686,14 @@ if check_password():
                             now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
                         ]
                         
-                        worksheet.append_row(new_row)
-                        st.cache_data.clear()  # Sadece veri cache'ini temizle
-                        st.success("✅ Kayıt eklendi!")
-                        st.rerun()
+                        # Fresh worksheet al
+                        fresh_sheet = get_fresh_worksheet()
+                        if fresh_sheet:
+                            fresh_sheet.append_row(new_row)
+                            st.cache_data.clear()  # Sadece veri cache'ini temizle
+                            st.success("✅ Kayıt eklendi!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Worksheet bağlantısı kurulamadı!")
                     except Exception as e:
                         st.error(f"❌ Ekleme hatası: {str(e)}")
