@@ -424,25 +424,106 @@ if check_password():
     df_acilis = df_raw[(df_raw["Islem Turu"] == "ACILIS") & (df_raw["Silindi"] != "X")].copy()
     
     # Normal işlemleri filtrele (Açılış ve Silindi hariç)
-    df = df_raw[(df_raw["Islem Turu"] != "ACILIS") & (df_raw["Silindi"] != "X")].copy()
+ # Açılış bakiyesini hesapla + Para birimi detayları
+    if secilen_ay_no == 1:
+        acilis_bakiye_ay = acilis_bakiye
+        acilis_detay = {}
+        for _, row in df_acilis.iterrows():
+            para = row['Para Birimi']
+            try:
+                tutar = float(row['Tutar'])
+                acilis_detay[para] = acilis_detay.get(para, 0) + tutar
+            except:
+                pass
+    else:
+        df_onceki_aylar = df[df['Tarih_DT'].dt.month < secilen_ay_no].copy()
+        onceki_gelir = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
+        onceki_gider = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
+        acilis_bakiye_ay = acilis_bakiye + onceki_gelir - onceki_gider
+        
+        acilis_detay = {}
+        for _, row in df_acilis.iterrows():
+            para = row['Para Birimi']
+            try:
+                tutar = float(row['Tutar'])
+                acilis_detay[para] = acilis_detay.get(para, 0) + tutar
+            except:
+                pass
+        
+        for _, row in df_onceki_aylar.iterrows():
+            para = row['Para Birimi']
+            try:
+                tutar = float(row['Tutar'])
+                if row['Islem Turu'] == 'Gelir':
+                    acilis_detay[para] = acilis_detay.get(para, 0) + tutar
+                elif row['Islem Turu'] == 'Gider':
+                    acilis_detay[para] = acilis_detay.get(para, 0) - tutar
+            except:
+                pass
     
-    # Açılış bakiyesini TRY'ye çevir
-    def calculate_acilis_bakiye():
-        if len(df_acilis) > 0:
-            total_try = 0
-            for _, row in df_acilis.iterrows():
-                try:
-                    tutar = float(row['Tutar'])
-                    para = row['Para Birimi']
-                    kur = kurlar.get(para, 1.0)
-                    total_try += tutar * kur
-                except:
-                    pass
-            return total_try
-        return 0
+    df_secilen_ay = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
+    t_gelir = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
+    t_gider = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
     
-    acilis_bakiye = calculate_acilis_bakiye()
+    gelir_detay = {}
+    gider_detay = {}
+    for _, row in df_secilen_ay.iterrows():
+        para = row['Para Birimi']
+        try:
+            tutar = float(row['Tutar'])
+            if row['Islem Turu'] == 'Gelir':
+                gelir_detay[para] = gelir_detay.get(para, 0) + tutar
+            elif row['Islem Turu'] == 'Gider':
+                gider_detay[para] = gider_detay.get(para, 0) + tutar
+        except:
+            pass
     
+    net_detay = {}
+    for para in ['TRY', 'USD', 'EUR', 'GBP']:
+        net_detay[para] = acilis_detay.get(para, 0) + gelir_detay.get(para, 0) - gider_detay.get(para, 0)
+    
+    net_kasa = acilis_bakiye_ay + t_gelir - t_gider
+
+    m1, m2, m3, m4, m5 = st.columns(5)
+    
+    with m1:
+        st.metric(f"💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
+        with st.expander("Detaylar"):
+            st.write(f"TRY: {format_int(acilis_detay.get('TRY', 0))} ₺")
+            st.write(f"USD: {format_int(acilis_detay.get('USD', 0))} $ ({format_int(acilis_detay.get('USD', 0) * kurlar.get('USD', 1))} ₺)")
+            st.write(f"EUR: {format_int(acilis_detay.get('EUR', 0))} € ({format_int(acilis_detay.get('EUR', 0) * kurlar.get('EUR', 1))} ₺)")
+            st.write(f"GBP: {format_int(acilis_detay.get('GBP', 0))} £ ({format_int(acilis_detay.get('GBP', 0) * kurlar.get('GBP', 1))} ₺)")
+    
+    with m2:
+        st.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
+        with st.expander("Detaylar"):
+            st.write(f"TRY: {format_int(gelir_detay.get('TRY', 0))} ₺")
+            st.write(f"USD: {format_int(gelir_detay.get('USD', 0))} $ ({format_int(gelir_detay.get('USD', 0) * kurlar.get('USD', 1))} ₺)")
+            st.write(f"EUR: {format_int(gelir_detay.get('EUR', 0))} € ({format_int(gelir_detay.get('EUR', 0) * kurlar.get('EUR', 1))} ₺)")
+            st.write(f"GBP: {format_int(gelir_detay.get('GBP', 0))} £ ({format_int(gelir_detay.get('GBP', 0) * kurlar.get('GBP', 1))} ₺)")
+    
+    with m3:
+        st.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
+        with st.expander("Detaylar"):
+            st.write(f"TRY: {format_int(gider_detay.get('TRY', 0))} ₺")
+            st.write(f"USD: {format_int(gider_detay.get('USD', 0))} $ ({format_int(gider_detay.get('USD', 0) * kurlar.get('USD', 1))} ₺)")
+            st.write(f"EUR: {format_int(gider_detay.get('EUR', 0))} € ({format_int(gelir_detay.get('EUR', 0) * kurlar.get('EUR', 1))} ₺)")
+            st.write(f"GBP: {format_int(gider_detay.get('GBP', 0))} £ ({format_int(gider_detay.get('GBP', 0) * kurlar.get('GBP', 1))} ₺)")
+    
+    with m4:
+        st.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
+        with st.expander("Detaylar"):
+            st.write(f"TRY: {format_int(net_detay.get('TRY', 0))} ₺")
+            st.write(f"USD: {format_int(net_detay.get('USD', 0))} $ ({format_int(net_detay.get('USD', 0) * kurlar.get('USD', 1))} ₺)")
+            st.write(f"EUR: {format_int(net_detay.get('EUR', 0))} € ({format_int(net_detay.get('EUR', 0) * kurlar.get('EUR', 1))} ₺)")
+            st.write(f"GBP: {format_int(net_detay.get('GBP', 0))} £ ({format_int(net_detay.get('GBP', 0) * kurlar.get('GBP', 1))} ₺)")
+    
+    with m5:
+        st.metric("💱 Döviz Kurları", "TCMB")
+        with st.expander("Detaylar"):
+            st.write(f"USD: {format_rate(kurlar.get('USD', 0))} ₺")
+            st.write(f"EUR: {format_rate(kurlar.get('EUR', 0))} ₺")
+            st.write(f"GBP: {format_rate(kurlar.get('GBP', 0))} ₺")
     # Güvenli UPB hesaplama
     def safe_upb_calc(row):
         try:
