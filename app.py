@@ -370,6 +370,7 @@ def get_gspread_client():
         st.error(f"❌ Google Sheets bağlantısı başarısız: {str(e)}")
         st.stop()
 
+@st.cache_data(ttl=60)  # Cache süresini 5 dakikadan 1 dakikaya düşürdüm
 def load_data():
     try:
         client = get_gspread_client()
@@ -662,6 +663,7 @@ if check_password():
                             int(f_tut), f_tekn, f_acik, "", 
                             now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
                         ])
+                        st.cache_data.clear()  # Cache'i temizle
                         st.success("✅ Kayıt eklendi!")
                         st.rerun()
                     except Exception as e:
