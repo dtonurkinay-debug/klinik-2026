@@ -353,14 +353,14 @@ def get_exchange_rates():
         rates = {'TRY': 1.0}
         for currency in root.findall('Currency'):
             code = currency.get('CurrencyCode')
-            if code in ['USD', 'EUR']:
+            if code in ['USD', 'EUR', 'GBP']:  # GBP eklendi
                 buying_text = currency.find('ForexBuying').text
                 if buying_text:
                     rates[code] = float(buying_text)
         return rates
     except Exception as e:
         st.warning(f"⚠️ Döviz kurları yüklenemedi, varsayılan değerler kullanılıyor")
-        return {'TRY': 1.0, 'USD': 30.00, 'EUR': 33.00}
+        return {'TRY': 1.0, 'USD': 30.00, 'EUR': 33.00, 'GBP': 36.00}  # GBP default
 
 def get_gspread_client():
     try:
@@ -480,13 +480,14 @@ if check_password():
     # Net kasa = Açılış + Gelir - Gider
     net_kasa = acilis_bakiye_ay + t_gelir - t_gider
 
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    m1, m2, m3, m4, m5, m6, m7 = st.columns(7)
     m1.metric(f"💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
     m2.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
     m3.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
     m4.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
     m5.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
     m6.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+    m7.metric("💷 GBP Kuru", f"{format_rate(kurlar['GBP'])} ₺")
 
     # --- ANALİZ PANELİ ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
@@ -570,8 +571,8 @@ if check_password():
                     n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], 
                                        index=0 if row_data.get('Islem Turu')=="Gelir" else 1)
                     curr_para = row_data.get('Para Birimi', 'TRY')
-                    para_idx = ["TRY","USD","EUR"].index(curr_para) if curr_para in ["TRY","USD","EUR"] else 0
-                    n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR"], index=para_idx)
+                    para_idx = ["TRY","USD","EUR","GBP"].index(curr_para) if curr_para in ["TRY","USD","EUR","GBP"] else 0
+                    n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR", "GBP"], index=para_idx)
                 with c_m2:
                     n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
                     n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
@@ -681,7 +682,7 @@ if check_password():
             f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
             f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
             f_kat = st.selectbox("📁 Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
-            f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR"])
+            f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR", "GBP"])
             f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
             f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK", "Ali", "Murat"])
             f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
