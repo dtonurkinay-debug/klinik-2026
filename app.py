@@ -570,6 +570,8 @@ if check_password():
                                 worksheet.update(f"A{idx}:J{idx}", 
                                               [[row_id, n_tar.strftime('%d.%m.%Y'), n_tur, n_hast,  # Tarih formatı düzeltildi
                                                 n_kat, n_para, int(n_tut), n_tekn, n_acik, ""]])
+                                st.cache_data.clear()
+                                st.cache_resource.clear()
                                 st.success("✅ Güncelleme başarılı!")
                                 st.rerun()
                             else:
@@ -593,6 +595,8 @@ if check_password():
                         if len(matching_rows) > 0:
                             idx = matching_rows.index[0] + 2
                             worksheet.update_cell(idx, 10, "X")
+                            st.cache_data.clear()
+                            st.cache_resource.clear()
                             st.success("✅ Silme başarılı!")
                             st.rerun()
                         else:
@@ -667,7 +671,8 @@ if check_password():
                         ]
                         
                         worksheet.append_row(new_row)
-                        st.cache_data.clear()  # Cache'i temizle
+                        st.cache_data.clear()  # Veri cache'ini temizle
+                        st.cache_resource.clear()  # GSpread client cache'ini de temizle
                         st.success("✅ Kayıt eklendi!")
                         st.rerun()
                     except Exception as e:
