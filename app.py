@@ -979,8 +979,36 @@ if check_password():
             show_edit_modal(row)
         if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
             show_delete_modal(row)
-
-with col_side:
-    # Modal Açma Butonu
-    if st.button("➕ Yeni Kayıt Ekle", use_container_width=True, type="primary"):
+    
+    # FAB Butonu - Sol Alt Köşe (Sticky)
+    st.markdown("""
+    <style>
+    .fab-container {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        z-index: 999;
+    }
+    .stButton > button[key="fab_add"] {
+        width: 64px !important;
+        height: 64px !important;
+        border-radius: 50% !important;
+        padding: 0 !important;
+        font-size: 32px !important;
+        background: #3498DB !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4) !important;
+        color: white !important;
+    }
+    .stButton > button[key="fab_add"]:hover {
+        transform: scale(1.1) !important;
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6) !important;
+    }
+    </style>
+    <div class="fab-container">
+    """, unsafe_allow_html=True)
+    
+    if st.button("➕", key="fab_add"):
         show_add_modal()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
