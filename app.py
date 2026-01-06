@@ -12,6 +12,7 @@ import plotly.express as px
 def load_custom_css():
     st.markdown("""
     <style>
+        /* Ana Tema Renkleri - Minimal Beyaz Dental */
         :root {
             --primary: #2C3E50;
             --success: #27AE60;
@@ -23,37 +24,286 @@ def load_custom_css():
             --text-light: #546E7A;
             --border: #E0E6ED;
         }
-        .stApp { background: linear-gradient(to bottom, #FFFFFF 0%, #F5F7FA 100%); }
-        .login-container { max-width: 420px; margin: 100px auto; padding: 50px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); border: 1px solid var(--border); text-align: center; }
-        .login-title { font-size: 36px; font-weight: bold; color: var(--primary); margin-bottom: 8px; }
-        .login-subtitle { color: var(--text-light); margin-bottom: 30px; font-size: 15px; }
-        [data-testid="metric-container"] { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border); transition: all 0.3s ease; }
-        [data-testid="metric-container"]:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        [data-testid="stMetricLabel"] { color: var(--text-light) !important; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-        [data-testid="stMetricValue"] { color: var(--primary) !important; font-size: 28px; font-weight: 700; }
-        h1 { color: var(--primary) !important; font-weight: 800; margin-bottom: 30px; }
-        h2, h3 { color: var(--primary) !important; font-weight: 700; }
-        [data-baseweb="select"] { border-radius: 10px; border: 1px solid var(--border) !important; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
-        input:not([role="combobox"]), textarea { border-radius: 8px !important; border: 1.5px solid var(--border) !important; padding: 12px !important; transition: all 0.3s ease; background: white !important; }
-        input:not([role="combobox"]):focus, textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.08) !important; }
-        .stButton button { border-radius: 8px; font-weight: 600; padding: 10px 20px; border: none; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-        .stButton button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .stButton button[kind="primary"] { background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%); color: white; }
-        .stButton button[type="submit"] { background: linear-gradient(135deg, #27AE60 0%, #229954 100%); color: white; width: 100%; }
-        button[key*="e_"] { background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%) !important; color: white !important; padding: 6px 14px !important; font-size: 14px !important; border-radius: 6px !important; }
-        button[key*="d_"] { background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important; color: white !important; padding: 6px 14px !important; font-size: 14px !important; border-radius: 6px !important; }
-        [data-testid="stExpander"] { background: white; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 10px; }
-        [data-testid="stMarkdownContainer"] strong { color: var(--primary); background: #F8F9FA; padding: 10px 0px 10px 12px; border-radius: 8px; display: inline-block; width: 100%; text-align: left; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid var(--border); margin: 0; }
-        [data-testid="column"] > div { padding: 8px 0px 8px 2mm; text-align: left; }
-        hr { border: none; height: 1px; background: var(--border); margin: 20px 0; }
-        [data-testid="stForm"] { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border); }
-        .element-container:has([data-testid="stForm"]) { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .stAlert { border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
-        .gelir-badge { background: linear-gradient(135deg, #27AE60 0%, #229954 100%); color: white; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 12px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3); }
-        .gider-badge { background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%); color: white; padding: 6px 16px; border-radius: 20px; font-weight: 600; font-size: 12px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3); }
-        .element-container:hover { background: #F8F9FA; border-radius: 8px; transition: all 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .stApp > div { animation: fadeIn 0.4s ease-out; }
+        
+        /* Genel Arkaplan - Temiz Beyaz */
+        .stApp {
+            background: linear-gradient(to bottom, #FFFFFF 0%, #F5F7FA 100%);
+        }
+        
+        /* Login Ekranı */
+        .login-container {
+            max-width: 420px;
+            margin: 100px auto;
+            padding: 50px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        
+        .login-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        
+        .login-subtitle {
+            color: var(--text-light);
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+        
+        /* Metrik Kartları - Beyaz Kartlar */
+        [data-testid="metric-container"] {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+        
+        [data-testid="metric-container"]:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        [data-testid="stMetricLabel"] {
+            color: var(--text-light) !important;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        [data-testid="stMetricValue"] {
+            color: var(--primary) !important;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        /* Başlıklar */
+        h1 {
+            color: var(--primary) !important;
+            font-weight: 800;
+            margin-bottom: 30px;
+        }
+        
+        h2, h3 {
+            color: var(--primary) !important;
+            font-weight: 700;
+        }
+        
+        /* Selectbox */
+        [data-baseweb="select"] {
+            border-radius: 10px;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+        
+        /* Input Alanları - Selectbox hariç */
+        input:not([role="combobox"]), 
+        textarea {
+            border-radius: 8px !important;
+            border: 1.5px solid var(--border) !important;
+            padding: 12px !important;
+            transition: all 0.3s ease;
+            background: white !important;
+        }
+        
+        input:not([role="combobox"]):focus, 
+        textarea:focus {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.08) !important;
+        }
+        
+        /* Butonlar - Genel */
+        .stButton button {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        
+        .stButton button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        /* Giriş Butonu */
+        .stButton button[kind="primary"] {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+            color: white;
+        }
+        
+        /* Form Submit Butonu */
+        .stButton button[type="submit"] {
+            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
+            color: white;
+            width: 100%;
+        }
+        
+        /* Düzenle Butonu */
+        button[key*="e_"] {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%) !important;
+            color: white !important;
+            padding: 6px 14px !important;
+            font-size: 14px !important;
+            border-radius: 6px !important;
+        }
+        
+        /* Sil Butonu */
+        button[key*="d_"] {
+            background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important;
+            color: white !important;
+            padding: 6px 14px !important;
+            font-size: 14px !important;
+            border-radius: 6px !important;
+        }
+        
+        /* Expander */
+        [data-testid="stExpander"] {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            padding: 10px;
+        }
+        
+        /* Tablo Başlıkları - Sol padding eklendi */
+        [data-testid="stMarkdownContainer"] strong {
+            color: var(--primary);
+            background: #F8F9FA;
+            padding: 10px 0px 10px 12px;
+            border-radius: 8px;
+            display: inline-block;
+            width: 100%;
+            text-align: left;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid var(--border);
+            margin: 0;
+        }
+        
+        /* Tablo satırları için tutarlı padding */
+        [data-testid="column"] > div {
+            padding: 8px 0px 8px 2mm;
+            text-align: left;
+        }
+        
+        /* Divider */
+        hr {
+            border: none;
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+        
+        /* Form Container */
+        [data-testid="stForm"] {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid var(--border);
+        }
+        
+        /* Yan Panel (Yeni Kayıt) */
+        .element-container:has([data-testid="stForm"]) {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        /* Uyarı Mesajları */
+        .stAlert {
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+        
+        /* Success Badge - Gelir */
+        .gelir-badge {
+            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3);
+        }
+        
+        /* Danger Badge - Gider */
+        .gider-badge {
+            background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+        }
+        
+        /* Tablo Satırları */
+        .element-container {
+            padding: 8px 0;
+        }
+        
+        /* Veri Satırları Hover */
+        .element-container:hover {
+            background: #F8F9FA;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        /* Animasyonlar */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stApp > div {
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #F5F7FA;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E0;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A0AEC0;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -64,15 +314,23 @@ except:
     try:
         locale.setlocale(locale.LC_ALL, 'tr_TR')
     except:
-        pass
+        pass  # Sessizce geç, uyarı gösterme
 
 # --- 2. GÜVENLİK ---
 PASSWORD = "klinik2026"
 
 def check_password():
     if "password_correct" not in st.session_state:
-        load_custom_css()
-        st.markdown('<div class="login-container"><div class="login-title">🦷 Klinik 2026</div><div class="login-subtitle">Diş Kliniği Yönetim Sistemi</div></div>', unsafe_allow_html=True)
+        load_custom_css()  # CSS yükle
+        
+        st.markdown("""
+        <div class="login-container">
+            <div class="login-title">🦷 Klinik 2026</div>
+            <div class="login-subtitle">Diş Kliniği Yönetim Sistemi</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Login formu
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             pwd = st.text_input("🔐 Şifre", type="password", placeholder="Şifrenizi girin...")
@@ -95,204 +353,495 @@ def get_exchange_rates():
         rates = {'TRY': 1.0}
         for currency in root.findall('Currency'):
             code = currency.get('CurrencyCode')
-            if code in ['USD', 'EUR', 'GBP']:
+            if code in ['USD', 'EUR', 'GBP']:  # GBP eklendi
                 buying_text = currency.find('ForexBuying').text
                 if buying_text:
                     rates[code] = float(buying_text)
         return rates
-    except Exception:
-        return {'TRY': 1.0, 'USD': 30.00, 'EUR': 33.00, 'GBP': 36.00}
+    except Exception as e:
+        st.warning(f"⚠️ Döviz kurları yüklenemedi, varsayılan değerler kullanılıyor")
+        return {'TRY': 1.0, 'USD': 30.00, 'EUR': 33.00, 'GBP': 36.00}  # GBP default
 
 def get_gspread_client():
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    return gspread.authorize(creds)
-
-def get_fresh_worksheet():
     try:
-        client = get_gspread_client()
-        return client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
-    except:
-        return None
+        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
+        return gspread.authorize(creds)
+    except Exception as e:
+        st.error(f"❌ Google Sheets bağlantısı başarısız: {str(e)}")
+        st.stop()
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=60)  # Cache süresini 5 dakikadan 1 dakikaya düşürdüm
 def load_data():
     try:
         client = get_gspread_client()
         sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
         data = sheet.get_all_values()
-        if len(data) < 2: return pd.DataFrame(), sheet
+        
+        if len(data) < 2:
+            st.warning("⚠️ Tabloda veri bulunamadı.")
+            return pd.DataFrame(), sheet
+        
         df = pd.DataFrame(data[1:], columns=data[0])
+        
+        # Tarih parse - ISO format için özel
         df['Tarih_DT'] = pd.to_datetime(df['Tarih'], format='%Y-%m-%d', errors='coerce')
+        
         df['Tutar'] = pd.to_numeric(df['Tutar'], errors='coerce').fillna(0)
+        
+        sort_cols = ['Tarih_DT']
+        if 'Yaratma Tarihi' in df.columns: sort_cols.append('Yaratma Tarihi')
+        if 'Yaratma Saati' in df.columns: sort_cols.append('Yaratma Saati')
+        df = df.sort_values(by=sort_cols, ascending=True)
         return df, sheet
     except Exception as e:
         st.error(f"❌ Veri yükleme hatası: {str(e)}")
         st.stop()
 
 def format_int(value):
-    try: return f"{int(round(float(value))):,}".replace(",", ".")
-    except: return "0"
+    try:
+        return f"{int(round(float(value))):,}".replace(",", ".")
+    except:
+        return "0"
 
 def format_rate(value):
-    try: return f"{float(value):.2f}".replace(".", ",")
-    except: return "0,00"
+    try:
+        return f"{float(value):.2f}".replace(".", ",")
+    except:
+        return "0,00"
 
 # --- ANA PROGRAM ---
 st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide", page_icon="🦷")
 
 if check_password():
-    load_custom_css()
+    load_custom_css()  # CSS yükle
+    
     df_raw, worksheet = load_data()
     kurlar = get_exchange_rates()
     
     if "Silindi" not in df_raw.columns: df_raw["Silindi"] = ""
-
-    # YARDIMCI HESAPLAMA FONKSİYONU
-    def safe_upb_calc(row):
-        try:
-            return float(row['Tutar']) * kurlar.get(row['Para Birimi'], 1.0)
-        except: return 0.0
-
-    # UPB Hesaplama ve Ana DF Ayrıştırma
-    df_raw['UPB_TRY'] = df_raw.apply(safe_upb_calc, axis=1)
+    
+    # Açılış bakiyelerini ayır
     df_acilis = df_raw[(df_raw["Islem Turu"] == "ACILIS") & (df_raw["Silindi"] != "X")].copy()
+    
+    # Normal işlemleri filtrele (Açılış ve Silindi hariç)
     df = df_raw[(df_raw["Islem Turu"] != "ACILIS") & (df_raw["Silindi"] != "X")].copy()
     
-    # Başlangıç Bakiyesi Tanımı
-    acilis_bakiye = df_acilis['UPB_TRY'].sum()
+    # Açılış bakiyesini TRY'ye çevir
+    def calculate_acilis_bakiye():
+        if len(df_acilis) > 0:
+            total_try = 0
+            for _, row in df_acilis.iterrows():
+                try:
+                    tutar = float(row['Tutar'])
+                    para = row['Para Birimi']
+                    kur = kurlar.get(para, 1.0)
+                    total_try += tutar * kur
+                except:
+                    pass
+            return total_try
+        return 0
+    
+    acilis_bakiye = calculate_acilis_bakiye()
+    
+    # Güvenli UPB hesaplama
+    def safe_upb_calc(row):
+        try:
+            tutar = float(row['Tutar'])
+            para = row['Para Birimi']
+            kur = kurlar.get(para, 1.0)
+            return tutar * kur
+        except:
+            return 0.0
+    
+    df['UPB_TRY'] = df.apply(safe_upb_calc, axis=1)
 
+    st.title("🦷 Klinik 2026 Yönetim Paneli")
+    
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
     secilen_ay_no = aylar.index(secilen_ay_adi) + 1
 
-    # Aylık Bakiye Hesaplama
+    # Açılış bakiyesini hesapla
     if secilen_ay_no == 1:
+        # Ocak: Excel'deki ACILIS kayıtlarından al
         acilis_bakiye_ay = acilis_bakiye
-        acilis_detay = {p: df_acilis[df_acilis['Para Birimi'] == p]['Tutar'].sum() for p in ['TRY', 'USD', 'EUR', 'GBP']}
     else:
-        df_onceki = df[df['Tarih_DT'].dt.month < secilen_ay_no]
-        acilis_bakiye_ay = acilis_bakiye + df_onceki[df_onceki["Islem Turu"] == "Gelir"]['UPB_TRY'].sum() - df_onceki[df_onceki["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
-        acilis_detay = {}
-        for p in ['TRY', 'USD', 'EUR', 'GBP']:
-            baslangic = df_acilis[df_acilis['Para Birimi'] == p]['Tutar'].sum()
-            gelir = df_onceki[(df_onceki['Para Birimi'] == p) & (df_onceki['Islem Turu'] == "Gelir")]['Tutar'].sum()
-            gider = df_onceki[(df_onceki['Para Birimi'] == p) & (df_onceki['Islem Turu'] == "Gider")]['Tutar'].sum()
-            acilis_detay[p] = baslangic + gelir - gider
-
+        # Diğer aylar: Önceki ayın net kasası
+        df_onceki_aylar = df[df['Tarih_DT'].dt.month < secilen_ay_no].copy()
+        onceki_gelir = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
+        onceki_gider = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
+        acilis_bakiye_ay = acilis_bakiye + onceki_gelir - onceki_gider
+    
+    # Sadece seçilen ayın gelir/gideri
     df_secilen_ay = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
     t_gelir = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
     t_gider = df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
+    
+    # Net kasa = Açılış + Gelir - Gider
     net_kasa = acilis_bakiye_ay + t_gelir - t_gider
 
-    # Metrikler
-    m1, m2, m3, m4, m5 = st.columns(5)
-    with m1:
-        st.metric("💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
-        with st.expander("Detaylar"):
-            for p, sim in zip(['TRY', 'USD', 'EUR', 'GBP'], ['₺', '$', '€', '£']):
-                st.write(f"{p}: {format_int(acilis_detay.get(p, 0))} {sim}")
+    # --- YENİ: PARA BİRİMİ BAZINDA HESAPLAMALAR ---
+    # Toggle state
+    if "show_currency_detail" not in st.session_state:
+        st.session_state.show_currency_detail = False
     
-    with m2:
-        st.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
-    with m3:
-        st.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
-    with m4:
-        st.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
-    with m5:
-        st.metric("💱 Döviz Kurları", "TCMB")
-        with st.expander("Detaylar"):
-            st.write(f"USD: {format_rate(kurlar.get('USD'))} ₺")
-            st.write(f"EUR: {format_rate(kurlar.get('EUR'))} ₺")
-            st.write(f"GBP: {format_rate(kurlar.get('GBP'))} ₺")
+    # Para birimi bazında açılış bakiyesi
+    def calc_acilis_by_currency():
+        currencies = {'TRY': 0, 'USD': 0, 'EUR': 0, 'GBP': 0}
+        if len(df_acilis) > 0:
+            for curr in currencies.keys():
+                currencies[curr] = df_acilis[df_acilis['Para Birimi'] == curr]['Tutar'].sum()
+        return currencies
+    
+    # Para birimi bazında gelir/gider (seçilen ay için)
+    def calc_gelir_gider_by_currency(df_filtered, islem_turu):
+        currencies = {'TRY': 0, 'USD': 0, 'EUR': 0, 'GBP': 0}
+        df_temp = df_filtered[df_filtered["Islem Turu"] == islem_turu]
+        for curr in currencies.keys():
+            currencies[curr] = df_temp[df_temp['Para Birimi'] == curr]['Tutar'].sum()
+        return currencies
+    
+    # Para birimi bazında net kasa (kümülatif - seçilen aya kadar)
+    def calc_net_by_currency(ay_no):
+        currencies = {'TRY': 0, 'USD': 0, 'EUR': 0, 'GBP': 0}
+        
+        # Açılış bakiyesi
+        acilis_curr = calc_acilis_by_currency()
+        
+        # Seçilen aya kadar tüm hareketler
+        if ay_no == 1:
+            df_cumulative = df_secilen_ay.copy()
+        else:
+            df_cumulative = df[df['Tarih_DT'].dt.month <= ay_no].copy()
+        
+        for curr in currencies.keys():
+            gelir = df_cumulative[(df_cumulative["Islem Turu"] == "Gelir") & (df_cumulative['Para Birimi'] == curr)]['Tutar'].sum()
+            gider = df_cumulative[(df_cumulative["Islem Turu"] == "Gider") & (df_cumulative['Para Birimi'] == curr)]['Tutar'].sum()
+            currencies[curr] = acilis_curr[curr] + gelir - gider
+        
+        return currencies
+    
+    acilis_curr = calc_acilis_by_currency()
+    gelir_curr = calc_gelir_gider_by_currency(df_secilen_ay, "Gelir")
+    gider_curr = calc_gelir_gider_by_currency(df_secilen_ay, "Gider")
+    net_curr = calc_net_by_currency(secilen_ay_no)
+    
+    # Toggle butonu
+    toggle_col1, toggle_col2, toggle_col3 = st.columns([1, 2, 1])
+    with toggle_col2:
+        if st.session_state.show_currency_detail:
+            if st.button("🔼 Sadece UPB Göster", use_container_width=True):
+                st.session_state.show_currency_detail = False
+                st.rerun()
+        else:
+            if st.button("🔽 Para Birimlerine Göre Detay Göster", use_container_width=True):
+                st.session_state.show_currency_detail = True
+                st.rerun()
+    
+    st.write("")  # Boşluk
+    
+    # Metrikleri göster
+    if st.session_state.show_currency_detail:
+        # DETAYLI GÖRÜNÜM - 4 Ana Grup
+        m1, m2, m3, m4 = st.columns(4)
+        
+        with m1:
+            st.metric("💼 Açılış Bakiyesi (UPB)", f"{format_int(acilis_bakiye_ay)} ₺")
+            st.metric("💵 TRY", f"{format_int(acilis_curr['TRY'])} ₺")
+            st.metric("💲 USD", f"{format_int(acilis_curr['USD'])} $")
+            st.metric("💶 EUR", f"{format_int(acilis_curr['EUR'])} €")
+            st.metric("💷 GBP", f"{format_int(acilis_curr['GBP'])} £")
+        
+        with m2:
+            st.metric(f"💰 Gelir (UPB) - {secilen_ay_adi}", f"{format_int(t_gelir)} ₺")
+            st.metric("💵 TRY", f"{format_int(gelir_curr['TRY'])} ₺")
+            st.metric("💲 USD", f"{format_int(gelir_curr['USD'])} $")
+            st.metric("💶 EUR", f"{format_int(gelir_curr['EUR'])} €")
+            st.metric("💷 GBP", f"{format_int(gelir_curr['GBP'])} £")
+        
+        with m3:
+            st.metric(f"💸 Gider (UPB) - {secilen_ay_adi}", f"{format_int(t_gider)} ₺")
+            st.metric("💵 TRY", f"{format_int(gider_curr['TRY'])} ₺")
+            st.metric("💲 USD", f"{format_int(gider_curr['USD'])} $")
+            st.metric("💶 EUR", f"{format_int(gider_curr['EUR'])} €")
+            st.metric("💷 GBP", f"{format_int(gider_curr['GBP'])} £")
+        
+        with m4:
+            st.metric("💵 Net Kasa (UPB)", f"{format_int(net_kasa)} ₺")
+            st.metric("💵 TRY", f"{format_int(net_curr['TRY'])} ₺")
+            st.metric("💲 USD", f"{format_int(net_curr['USD'])} $")
+            st.metric("💶 EUR", f"{format_int(net_curr['EUR'])} €")
+            st.metric("💷 GBP", f"{format_int(net_curr['GBP'])} £")
+        
+        st.write("")  # Boşluk
+        
+        # Kurlar - Alt satırda
+        k1, k2, k3 = st.columns(3)
+        k1.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+        k2.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+        k3.metric("💷 GBP Kuru", f"{format_rate(kurlar['GBP'])} ₺")
+        
+    else:
+        # KOMPAKT GÖRÜNÜM - Sadece UPB
+        m1, m2, m3, m4, m5, m6, m7 = st.columns(7)
+        m1.metric(f"💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
+        m2.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
+        m3.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
+        m4.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
+        m5.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+        m6.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+        m7.metric("💷 GBP Kuru", f"{format_rate(kurlar['GBP'])} ₺")
 
-    st.title("🦷 Klinik 2026 Yönetim Paneli")
-
-    # Grafik Analiz
-    with st.expander("📊 Grafiksel Analizler", expanded=False):
+    # --- ANALİZ PANELİ ---
+    with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
         df_trends = df.copy()
+        df_trends['Ay_No'] = df_trends['Tarih_DT'].dt.month
         df_trends['Ay_Ad'] = df_trends['Tarih_DT'].dt.strftime('%B')
-        trend_summary = df_trends.groupby([df_trends['Tarih_DT'].dt.month, 'Ay_Ad', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
+        
+        trend_summary = df_trends.groupby(['Ay_No', 'Ay_Ad', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
+        trend_summary = trend_summary.sort_values('Ay_No')
+
         g1, g2 = st.columns(2)
         with g1:
-            st.plotly_chart(px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', title="Aylık Trend"), use_container_width=True)
+            fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', 
+                          title="Aylık Gelir/Gider Trendi", markers=True)
+            fig1.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+            st.plotly_chart(fig1, use_container_width=True)
         with g2:
-            st.plotly_chart(px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"], values='UPB_TRY', names='Kategori', title="Gelir Dağılımı"), use_container_width=True)
+            fig2 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"], 
+                         values='UPB_TRY', names='Kategori', 
+                         title=f"Gelir Dağılımı ({secilen_ay_adi})", hole=0.4)
+            fig2.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+            st.plotly_chart(fig2, use_container_width=True)
+
+        g3, g4 = st.columns(2)
+        with g3:
+            df_kasa = trend_summary.pivot(index='Ay_Ad', columns='Islem Turu', values='UPB_TRY').fillna(0)
+            if 'Gelir' in df_kasa and 'Gider' in df_kasa:
+                df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
+                df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
+                fig3 = px.area(df_kasa.reset_index(), x='Ay_Ad', y='Kumulatif', title="Kasa Büyüme Trendi")
+                fig3.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+                st.plotly_chart(fig3, use_container_width=True)
+        with g4:
+            fig4 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"], 
+                         values='UPB_TRY', names='Kategori', 
+                         title=f"Gider Dağılımı ({secilen_ay_adi})", hole=0.4)
+            fig4.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+            st.plotly_chart(fig4, use_container_width=True)
 
     st.divider()
+
     col_main, col_side = st.columns([4.5, 1])
 
     with col_main:
         st.subheader(f"📑 {secilen_ay_adi} Ayı Hareketleri")
-        search_term = st.text_input("🔍 Hızlı Arama:", placeholder="Hasta adı, kategori...")
-        df_display = df_secilen_ay.copy()
+        
+        # DEBUG
+        st.caption(f"🔍 Toplam {len(df)} kayıt | Seçilen ay: {secilen_ay_no} | Filtre sonucu: ...")
+        
+        df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
+        
+        st.caption(f"🔍 {len(df_display)} kayıt bu ayda")
+        
+        # Tarih kontrolü
+        if len(df) > 0:
+            st.caption(f"🔍 İlk kayıt tarihi: {df['Tarih_DT'].min()} | Son kayıt tarihi: {df['Tarih_DT'].max()}")
+        
+        search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         if search_term:
             df_display = df_display[df_display.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)]
 
         c = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
-        for col, h in zip(c, ["ID", "Tarih", "Tür", "Hasta Adı", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]):
-            col.markdown(f"**{h}**")
+        heads = ["ID", "Tarih", "Tür", "Hasta Adı", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]
+        for col, h in zip(c, heads): col.markdown(f"**{h}**")
         st.write("---")
 
+        # Modal fonksiyonları
         def show_edit_modal(row_data):
-            @st.dialog(f"✏️ Düzenle: {row_data.get('Hasta Adi')}")
+            @st.dialog(f"✏️ Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
             def edit_modal():
-                n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi')))
-                n_tar = st.date_input("İşlem Tarihi", value=pd.to_datetime(row_data['Tarih']).date())
-                n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], index=0 if row_data['Islem Turu']=="Gelir" else 1)
-                n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR", "GBP"], index=["TRY","USD","EUR","GBP"].index(row_data['Para Birimi']))
-                n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
-                n_tut = st.number_input("Tutar", value=int(row_data['Tutar']), step=1)
-                n_acik = st.text_area("Açıklama", value=str(row_data.get('Aciklama')))
+                n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
+                
+                try:
+                    default_date = pd.to_datetime(row_data['Tarih']).date()
+                except:
+                    default_date = date.today()
+                n_tar = st.date_input("İşlem Tarihi", value=default_date)
+                
+                c_m1, c_m2 = st.columns(2)
+                with c_m1:
+                    n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], 
+                                       index=0 if row_data.get('Islem Turu')=="Gelir" else 1)
+                    curr_para = row_data.get('Para Birimi', 'TRY')
+                    para_idx = ["TRY","USD","EUR","GBP"].index(curr_para) if curr_para in ["TRY","USD","EUR","GBP"] else 0
+                    n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR", "GBP"], index=para_idx)
+                with c_m2:
+                    n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
+                    n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
+                
+                try:
+                    default_tutar = int(float(row_data.get('Tutar', 0)))
+                except:
+                    default_tutar = 0
+                n_tut = st.number_input("Tutar", value=default_tutar, step=1)
+                n_acik = st.text_area("Açıklama", value=str(row_data.get('Aciklama', '')))
+                
                 if st.button("💾 Güncelle", use_container_width=True):
-                    try:
-                        idx = df_raw[df_raw.iloc[:,0] == row_data.iloc[0]].index[0] + 2
-                        fresh_sheet = get_fresh_worksheet()
-                        fresh_sheet.update(f"A{idx}:I{idx}", [[row_data.iloc[0], n_tar.strftime('%Y-%m-%d'), n_tur, n_hast, n_kat, n_para, int(n_tut), "YOK", n_acik]])
-                        st.cache_data.clear()
-                        st.success("✅ Güncellendi!"); st.rerun()
-                    except Exception as e: st.error(f"Hata: {e}")
+                    if n_tut <= 0: 
+                        st.error("Lütfen geçerli bir tutar girin!")
+                    else:
+                        try:
+                            row_id = row_data.get('ID', '')
+                            matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
+                            if len(matching_rows) > 0:
+                                idx = matching_rows.index[0] + 2
+                                
+                                # Direkt bağlantı aç
+                                creds = Credentials.from_service_account_info(
+                                    st.secrets["gcp_service_account"], 
+                                    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                                )
+                                client = gspread.authorize(creds)
+                                sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                                
+                                # Mevcut yaratma bilgilerini al
+                                existing_row = sheet.row_values(idx)
+                                yaratma_tarihi = existing_row[10] if len(existing_row) > 10 else ""
+                                yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
+                                
+                                sheet.update(f"A{idx}:L{idx}", 
+                                          [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,  # ISO format
+                                            n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
+                                            yaratma_tarihi, yaratma_saati]])
+                                st.cache_data.clear()
+                                st.success("✅ Güncelleme başarılı!")
+                                import time
+                                time.sleep(0.5)
+                                st.rerun()
+                            else:
+                                st.error("❌ Kayıt bulunamadı!")
+                        except Exception as e:
+                            st.error(f"❌ Güncelleme hatası: {str(e)}")
             edit_modal()
 
         def show_delete_modal(row_data):
-            @st.dialog("⚠️ Silme Onayı")
+            @st.dialog("⚠️ Kayıt Silme Onayı")
             def delete_modal():
+                row_id = row_data.get('ID', '')
+                hasta = row_data.get('Hasta Adi', '')
+                tutar = row_data.get('Tutar', '0')
+                para = row_data.get('Para Birimi', 'TRY')
+                
+                st.error(f"**SİLİNECEK:** {row_id} | {hasta} | {tutar} {para}")
                 if st.button("🗑️ Evet, Sil", use_container_width=True, type="primary"):
                     try:
-                        idx = df_raw[df_raw.iloc[:,0] == row_data.iloc[0]].index[0] + 2
-                        fresh_sheet = get_fresh_worksheet()
-                        fresh_sheet.update_cell(idx, 10, "X")
-                        st.cache_data.clear()
-                        st.success("✅ Silindi!"); st.rerun()
-                    except Exception as e: st.error(f"Hata: {e}")
+                        matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
+                        if len(matching_rows) > 0:
+                            idx = matching_rows.index[0] + 2
+                            
+                            # Direkt bağlantı aç
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"], 
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            
+                            sheet.update_cell(idx, 10, "X")
+                            st.cache_data.clear()
+                            st.success("✅ Silme başarılı!")
+                            import time
+                            time.sleep(0.5)
+                            st.rerun()
+                        else:
+                            st.error("❌ Kayıt bulunamadı!")
+                    except Exception as e:
+                        st.error(f"❌ Silme hatası: {str(e)}")
             delete_modal()
 
+        # Satırları göster
         for _, row in df_display.iterrows():
-            badge = "gelir-badge" if row['Islem Turu'] == "Gelir" else "gider-badge"
+            is_gelir = row.get('Islem Turu') == "Gelir"
+            badge_class = "gelir-badge" if is_gelir else "gider-badge"
             r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
-            r[0].write(row.iloc[0]); r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y'))
-            r[2].markdown(f"<span class='{badge}'>{row['Islem Turu']}</span>", unsafe_allow_html=True)
-            r[3].write(row['Hasta Adi']); r[4].write(row['Kategori']); r[5].write(row['Para Birimi'])
-            r[6].write(format_int(row['Tutar'])); r[7].write(format_int(row['UPB_TRY']))
-            r[8].write(row['Teknisyen']); r[9].write(row['Aciklama'])
+            
+            r[0].write(row.iloc[0])
+            r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
+            r[2].markdown(f"<span class='{badge_class}'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
+            r[3].write(row.get('Hasta Adi', ''))
+            r[4].write(row.get('Kategori', ''))
+            r[5].write(row.get('Para Birimi', ''))
+            r[6].write(format_int(row.get('Tutar', 0)))
+            r[7].write(format_int(row.get('UPB_TRY', 0)))
+            r[8].write(row.get('Teknisyen', ''))
+            r[9].write(row.get('Aciklama', ''))
+            
             btn_e, btn_d = r[10].columns(2)
-            if btn_e.button("✏️", key=f"e_{row.iloc[0]}"): show_edit_modal(row)
-            if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"): show_delete_modal(row)
+            if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
+                show_edit_modal(row)
+            if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
+                show_delete_modal(row)
 
     with col_side:
         st.subheader("➕ Yeni Kayıt")
-        with st.form("yeni_kayit", clear_on_submit=True):
+        with st.form("form_v22_final", clear_on_submit=True):
             f_tar = st.date_input("📅 Tarih", date.today())
             f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
-            f_hast = st.text_input("👤 Hasta/Cari")
+            f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
             f_kat = st.selectbox("📁 Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
             f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR", "GBP"])
             f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
-            f_acik = st.text_input("📝 Açıklama")
-            if st.form_submit_button("✅ Ekle", use_container_width=True):
-                if f_tut > 0:
+            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK", "Ali", "Murat"])
+            f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
+            
+            submitted = st.form_submit_button("✅ Ekle", use_container_width=True)
+            if submitted:
+                if f_tut <= 0:
+                    st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
+                else:
                     try:
-                        next_id = int(pd.to_numeric(df_raw.iloc[:,0], errors='coerce').max() + 1) if len(df_raw) > 0 else 1
-                        new_row = [next_id, f_tar.strftime('%Y-%m-%d'), f_tur, f_hast, f_kat, f_para, int(f_tut), "YOK", f_acik, "", datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%H:%M:%S")]
-                        worksheet.append_row(new_row)
-                        st.cache_data.clear(); st.success("✅ Kayıt eklendi!"); st.rerun()
-                    except Exception as e: st.error(f"Hata: {e}")
+                        now = datetime.now()
+                        
+                        # ID hesaplarken ACILIS satırlarını hariç tut
+                        if len(df_raw) > 0:
+                            normal_rows = df_raw[df_raw.get('Islem Turu', '') != 'ACILIS']
+                            if len(normal_rows) > 0:
+                                existing_ids = pd.to_numeric(normal_rows.iloc[:, 0], errors='coerce').dropna()
+                                if len(existing_ids) > 0:
+                                    next_id = int(existing_ids.max() + 1)
+                                else:
+                                    next_id = 1
+                            else:
+                                next_id = 1
+                        else:
+                            next_id = 1
+                        
+                        new_row = [
+                            next_id, 
+                            f_tar.strftime('%Y-%m-%d'),  # ISO format Excel için
+                            f_tur, f_hast, f_kat, f_para, 
+                            int(f_tut), f_tekn, f_acik, "", 
+                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")  # ISO format
+                        ]
+                        
+                        # Direkt yeni bağlantı aç
+                        try:
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"], 
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            sheet.append_row(new_row)
+                            
+                            # Cache'i temizle ve sayfayı yenile
+                            st.cache_data.clear()
+                            st.success("✅ Kayıt eklendi!")
+                            import time
+                            time.sleep(0.5)  # Kısa bir bekleme
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Ekleme hatası detay: {str(e)}")
+                    except Exception as e:
+                        st.error(f"❌ Ekleme hatası: {str(e)}")
