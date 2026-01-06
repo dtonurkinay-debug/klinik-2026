@@ -518,18 +518,28 @@ def format_rate(value):
 
 # --- KATEGORI FONKSİYONLARI ---
 def get_gelir_kategorileri():
-    """Gelir kategorilerini döndür (alfabetik sıralı)"""
-    return sorted(["Klinik Hastası", "Teknisyen Hastası"])
+    """Gelir kategorilerini döndür (alfabetik sıralı, prefix ile)"""
+    base = ["Klinik Hastası", "Teknisyen Hastası"]
+    return sorted([f"{k} (Gelir)" for k in base])
 
 def get_gider_kategorileri():
-    """Gider kategorilerini döndür (alfabetik sıralı)"""
-    return sorted(["Kira", "Aidat", "E-Ödeme", "Personel Maaşı", "Laboratuvar", 
-                   "Implant", "Malzeme", "Mutfak", "Yemek", "Onur", "Birikim", 
-                   "Komisyon", "Diğer"])
+    """Gider kategorilerini döndür (alfabetik sıralı, prefix ile)"""
+    base = ["Kira", "Aidat", "E-Ödeme", "Personel Maaşı", "Laboratuvar", 
+            "Implant", "Malzeme", "Mutfak", "Yemek", "Onur", "Birikim", 
+            "Komisyon", "Diğer"]
+    return sorted([f"{k} (Gider)" for k in base])
 
 def get_teknisyen_listesi():
     """Teknisyen listesini döndür (alfabetik sıralı)"""
     return sorted(["Ali", "Cihat", "Murat", "Diğer"])
+
+def clean_kategori(kat_with_prefix):
+    """Kategori isminden (Gelir)/(Gider) prefix'ini temizle"""
+    if " (Gelir)" in kat_with_prefix:
+        return kat_with_prefix.replace(" (Gelir)", "")
+    elif " (Gider)" in kat_with_prefix:
+        return kat_with_prefix.replace(" (Gider)", "")
+    return kat_with_prefix
 
 # --- ANA PROGRAM ---
 st.set_page_config(page_title="2026 Gelir-Gider Takip", layout="wide", page_icon="🦷")
@@ -829,7 +839,17 @@ if check_password():
                     # Kategori - TÜM kategoriler
                     all_kategoriler = ["Seçiniz..."] + get_gelir_kategorileri() + get_gider_kategorileri()
                     current_kat = row_data.get('Kategori', '')
-                    kat_index = all_kategoriler.index(current_kat) if current_kat in all_kategoriler else 0
+                    
+                    # Mevcut kategoriyi prefix ile eşleştir
+                    current_tur = row_data.get('Islem Turu', '')
+                    if current_tur == "Gelir" and current_kat:
+                        current_kat_display = f"{current_kat} (Gelir)"
+                    elif current_tur == "Gider" and current_kat:
+                        current_kat_display = f"{current_kat} (Gider)"
+                    else:
+                        current_kat_display = current_kat
+                    
+                    kat_index = all_kategoriler.index(current_kat_display) if current_kat_display in all_kategoriler else 0
                     n_kat = st.selectbox("Kategori *", all_kategoriler, index=kat_index)
                     
                     # Teknisyen - Sabit liste (boş bırakılabilir)
@@ -867,8 +887,8 @@ if check_password():
                     if n_tur == "Gider" and n_kat in gelir_kategoriler:
                         errors.append(f"'{n_kat}' bir Gelir kategorisidir. Lütfen Gider kategorisi seçin.")
                     
-                    # Teknisyen Hastası kontrolü
-                    if n_kat == "Teknisyen Hastası" and not n_tekn:
+                    # Teknisyen Hastası kontrolü (prefix ile)
+                    if n_kat == "Teknisyen Hastası (Gelir)" and not n_tekn:
                         errors.append("Teknisyen Hastası için Teknisyen seçimi zorunludur")
                     
                     # Tutar kontrolü
@@ -900,7 +920,7 @@ if check_password():
                                 
                                 sheet.update(f"A{idx}:L{idx}", 
                                           [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,
-                                            n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
+                                            clean_kategori(n_kat), n_para, int(n_tut), n_tekn, n_acik, "",  # Prefix temizlendi
                                             yaratma_tarihi, yaratma_saati]])
                                 st.cache_data.clear()
                                 st.success("✅ Güncelleme başarılı!")
@@ -1017,8 +1037,8 @@ if check_password():
                 if f_tur == "Gider" and f_kat in gelir_kategoriler:
                     errors.append(f"'{f_kat}' bir Gelir kategorisidir. Lütfen Gider kategorisi seçin.")
                 
-                # Teknisyen Hastası kontrolü
-                if f_kat == "Teknisyen Hastası" and not f_tekn:
+                # Teknisyen Hastası kontrolü (prefix ile)
+                if f_kat == "Teknisyen Hastası (Gelir)" and not f_tekn:
                     errors.append("Teknisyen Hastası için Teknisyen seçimi zorunludur")
                 
                 # Tutar kontrolü
@@ -1049,7 +1069,7 @@ if check_password():
                         new_row = [
                             next_id, 
                             f_tar.strftime('%Y-%m-%d'),
-                            f_tur, f_hast, f_kat, f_para, 
+                            f_tur, f_hast, clean_kategori(f_kat), f_para,  # Prefix temizlendi
                             int(f_tut), f_tekn, f_acik, "", 
                             now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
                         ]
