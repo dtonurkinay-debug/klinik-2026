@@ -877,6 +877,10 @@ if check_password():
                     if n_kat == "Seçiniz...":
                         errors.append("Kategori seçimi zorunludur")
                     
+                    # Klinik Hastası için Hasta adı zorunlu
+                    if n_kat == "Klinik Hastası (Gelir)" and not n_hast.strip():
+                        errors.append("Klinik Hastası için Hasta/Cari Adı zorunludur")
+                    
                     # Tür-Kategori uyum kontrolü
                     gelir_kategoriler = get_gelir_kategorileri()
                     gider_kategoriler = get_gider_kategorileri()
@@ -1030,6 +1034,10 @@ if check_password():
                 # Kategori boş kontrolü
                 if f_kat == "Seçiniz...":
                     errors.append("Kategori seçimi zorunludur")
+                
+                # Klinik Hastası için Hasta adı zorunlu
+                if f_kat == "Klinik Hastası (Gelir)" and not f_hast.strip():
+                    errors.append("Klinik Hastası için Hasta/Cari Adı zorunludur")
                 
                 # Tür-Kategori uyum kontrolü
                 gelir_kategoriler = get_gelir_kategorileri()
