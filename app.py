@@ -536,7 +536,7 @@ if check_password():
         if st.button("🚪 Çıkış", key="logout_btn"):
             logout()
     
-    st.markdown('<hr style="margin: 8px 0;">', unsafe_allow_html=True)
+    st.markdown('<hr style="margin: 5px 0 0 0;">', unsafe_allow_html=True)
     
     df_raw, worksheet = load_data()
     kurlar = get_exchange_rates()
