@@ -70,6 +70,56 @@ def load_custom_css():
             box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
         
+        /* Para Birimi Detay Kutusu */
+        .currency-detail {
+            background: #F8F9FA;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+        }
+        
+        .currency-detail.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .currency-detail.expanded {
+            max-height: 300px;
+            opacity: 1;
+        }
+        
+        .currency-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+        
+        .currency-label {
+            font-weight: 600;
+        }
+        
+        /* Mini Toggle Button */
+        .mini-toggle {
+            float: right;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            transition: transform 0.3s ease;
+        }
+        
+        .mini-toggle:hover {
+            transform: scale(1.2);
+        }
+        
         [data-testid="stMetricLabel"] {
             color: var(--text-light) !important;
             font-weight: 600;
@@ -540,71 +590,56 @@ if check_password():
     gider_curr = calc_gelir_gider_by_currency(df_secilen_ay, "Gider")
     net_curr = calc_net_by_currency(secilen_ay_no)
     
-    # Toggle butonu
-    toggle_col1, toggle_col2, toggle_col3 = st.columns([1, 2, 1])
-    with toggle_col2:
+    # Helper function: Para birimi detay HTML
+    def render_currency_detail(currencies, show):
+        detail_class = "expanded" if show else "collapsed"
+        html = f'<div class="currency-detail {detail_class}">'
+        for symbol, curr in [("💵", "TRY"), ("💲", "USD"), ("💶", "EUR"), ("💷", "GBP")]:
+            value = format_int(currencies[curr])
+            currency_symbol = {"TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£"}[curr]
+            html += f'<div class="currency-row"><span class="currency-label">{symbol} {curr}:</span><span>{value} {currency_symbol}</span></div>'
+        html += '</div>'
+        return html
+    
+    # Metrikleri göster - 4 Ana Kolon
+    m1, m2, m3, m4 = st.columns(4)
+    
+    with m1:
+        st.metric("💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
         if st.session_state.show_currency_detail:
-            if st.button("🔼 Sadece UPB Göster", use_container_width=True):
-                st.session_state.show_currency_detail = False
+            st.markdown(render_currency_detail(acilis_curr, True), unsafe_allow_html=True)
+    
+    with m2:
+        st.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
+        if st.session_state.show_currency_detail:
+            st.markdown(render_currency_detail(gelir_curr, True), unsafe_allow_html=True)
+    
+    with m3:
+        st.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
+        if st.session_state.show_currency_detail:
+            st.markdown(render_currency_detail(gider_curr, True), unsafe_allow_html=True)
+    
+    with m4:
+        # Net Kasa başlığına mini toggle ekle
+        toggle_icon = "🔼" if st.session_state.show_currency_detail else "🔽"
+        col_title, col_toggle = st.columns([0.85, 0.15])
+        with col_title:
+            st.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
+        with col_toggle:
+            if st.button(toggle_icon, key="toggle_currency", help="Para birimlerine göre detay"):
+                st.session_state.show_currency_detail = not st.session_state.show_currency_detail
                 st.rerun()
-        else:
-            if st.button("🔽 Para Birimlerine Göre Detay Göster", use_container_width=True):
-                st.session_state.show_currency_detail = True
-                st.rerun()
+        
+        if st.session_state.show_currency_detail:
+            st.markdown(render_currency_detail(net_curr, True), unsafe_allow_html=True)
     
     st.write("")  # Boşluk
     
-    # Metrikleri göster
-    if st.session_state.show_currency_detail:
-        # DETAYLI GÖRÜNÜM - 4 Ana Grup
-        m1, m2, m3, m4 = st.columns(4)
-        
-        with m1:
-            st.metric("💼 Açılış Bakiyesi (UPB)", f"{format_int(acilis_bakiye_ay)} ₺")
-            st.metric("💵 TRY", f"{format_int(acilis_curr['TRY'])} ₺")
-            st.metric("💲 USD", f"{format_int(acilis_curr['USD'])} $")
-            st.metric("💶 EUR", f"{format_int(acilis_curr['EUR'])} €")
-            st.metric("💷 GBP", f"{format_int(acilis_curr['GBP'])} £")
-        
-        with m2:
-            st.metric(f"💰 Gelir (UPB) - {secilen_ay_adi}", f"{format_int(t_gelir)} ₺")
-            st.metric("💵 TRY", f"{format_int(gelir_curr['TRY'])} ₺")
-            st.metric("💲 USD", f"{format_int(gelir_curr['USD'])} $")
-            st.metric("💶 EUR", f"{format_int(gelir_curr['EUR'])} €")
-            st.metric("💷 GBP", f"{format_int(gelir_curr['GBP'])} £")
-        
-        with m3:
-            st.metric(f"💸 Gider (UPB) - {secilen_ay_adi}", f"{format_int(t_gider)} ₺")
-            st.metric("💵 TRY", f"{format_int(gider_curr['TRY'])} ₺")
-            st.metric("💲 USD", f"{format_int(gider_curr['USD'])} $")
-            st.metric("💶 EUR", f"{format_int(gider_curr['EUR'])} €")
-            st.metric("💷 GBP", f"{format_int(gider_curr['GBP'])} £")
-        
-        with m4:
-            st.metric("💵 Net Kasa (UPB)", f"{format_int(net_kasa)} ₺")
-            st.metric("💵 TRY", f"{format_int(net_curr['TRY'])} ₺")
-            st.metric("💲 USD", f"{format_int(net_curr['USD'])} $")
-            st.metric("💶 EUR", f"{format_int(net_curr['EUR'])} €")
-            st.metric("💷 GBP", f"{format_int(net_curr['GBP'])} £")
-        
-        st.write("")  # Boşluk
-        
-        # Kurlar - Alt satırda
-        k1, k2, k3 = st.columns(3)
-        k1.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
-        k2.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
-        k3.metric("💷 GBP Kuru", f"{format_rate(kurlar['GBP'])} ₺")
-        
-    else:
-        # KOMPAKT GÖRÜNÜM - Sadece UPB
-        m1, m2, m3, m4, m5, m6, m7 = st.columns(7)
-        m1.metric(f"💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
-        m2.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
-        m3.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
-        m4.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
-        m5.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
-        m6.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
-        m7.metric("💷 GBP Kuru", f"{format_rate(kurlar['GBP'])} ₺")
+    # Kurlar - Alt satırda (her zaman görünür)
+    k1, k2, k3 = st.columns(3)
+    k1.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
+    k2.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
+    k3.metric("💷 GBP Kuru", f"{format_rate(kurlar['GBP'])} ₺")
 
     # --- ANALİZ PANELİ ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
