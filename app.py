@@ -805,12 +805,6 @@ if check_password():
         def show_edit_modal(row_data):
             @st.dialog(f"✏️ Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
             def edit_modal():
-                # Session state için key oluştur
-                if "edit_tur" not in st.session_state:
-                    st.session_state.edit_tur = row_data.get('Islem Turu', 'Seçiniz...')
-                if "edit_kat" not in st.session_state:
-                    st.session_state.edit_kat = row_data.get('Kategori', 'Seçiniz...')
-                
                 n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
                 
                 try:
@@ -821,48 +815,40 @@ if check_password():
                 
                 c_m1, c_m2 = st.columns(2)
                 with c_m1:
-                    # Tür seçimi - ZORUNLU, DEFAULT YOK
-                    tur_options = ["Seçiniz...", "Gelir", "Gider"]
-                    tur_index = tur_options.index(st.session_state.edit_tur) if st.session_state.edit_tur in tur_options else 0
-                    n_tur = st.selectbox("İşlem Türü *", tur_options, index=tur_index, key="edit_tur_select")
-                    
-                    # Tür değişince session state güncelle
-                    if n_tur != st.session_state.edit_tur:
-                        st.session_state.edit_tur = n_tur
-                        st.session_state.edit_kat = "Seçiniz..."  # Kategoriyi sıfırla
-                        st.rerun()
+                    # Tür - Radio Button
+                    current_tur = row_data.get('Islem Turu', 'Gelir')
+                    n_tur = st.radio("📊 Tür *", ["Gelir", "Gider"], 
+                                    horizontal=True,
+                                    index=0 if current_tur == "Gelir" else 1)
                     
                     curr_para = row_data.get('Para Birimi', 'TRY')
                     para_idx = ["TRY","USD","EUR","GBP"].index(curr_para) if curr_para in ["TRY","USD","EUR","GBP"] else 0
                     n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR", "GBP"], index=para_idx)
                 
                 with c_m2:
-                    # Kategori - ZORUNLU, Türe göre dinamik
+                    # Kategori - Türe göre conditional rendering
+                    current_kat = row_data.get('Kategori', '')
+                    
                     if n_tur == "Gelir":
-                        kat_options = ["Seçiniz..."] + get_gelir_kategorileri()
-                    elif n_tur == "Gider":
-                        kat_options = ["Seçiniz..."] + get_gider_kategorileri()
-                    else:
-                        kat_options = ["Seçiniz..."]
-                    
-                    kat_index = kat_options.index(st.session_state.edit_kat) if st.session_state.edit_kat in kat_options else 0
-                    n_kat = st.selectbox("Kategori *", kat_options, index=kat_index, key="edit_kat_select")
-                    
-                    # Kategori değişince session state güncelle
-                    if n_kat != st.session_state.edit_kat:
-                        st.session_state.edit_kat = n_kat
+                        gelir_opts = ["Seçiniz..."] + get_gelir_kategorileri()
+                        kat_idx = gelir_opts.index(current_kat) if current_kat in gelir_opts else 0
+                        n_kat = st.selectbox("📁 Kategori *", gelir_opts, index=kat_idx)
+                    else:  # Gider
+                        gider_opts = ["Seçiniz..."] + get_gider_kategorileri()
+                        kat_idx = gider_opts.index(current_kat) if current_kat in gider_opts else 0
+                        n_kat = st.selectbox("📁 Kategori *", gider_opts, index=kat_idx)
                     
                     # Teknisyen - Sadece Gelir + Teknisyen Hastası için ZORUNLU
                     if n_tur == "Gelir" and n_kat == "Teknisyen Hastası":
                         tekn_options = ["Seçiniz..."] + get_teknisyen_listesi()
-                        current_tekn = row_data.get('Teknisyen', 'Seçiniz...')
+                        current_tekn = row_data.get('Teknisyen', '')
                         tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
-                        n_tekn = st.selectbox("Teknisyen *", tekn_options, index=tekn_index)
+                        n_tekn = st.selectbox("👨‍⚕️ Teknisyen *", tekn_options, index=tekn_index)
                     else:
                         tekn_options = ["YOK"] + get_teknisyen_listesi()
                         current_tekn = row_data.get('Teknisyen', 'YOK')
                         tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
-                        n_tekn = st.selectbox("Teknisyen", tekn_options, index=tekn_index)
+                        n_tekn = st.selectbox("👨‍⚕️ Teknisyen", tekn_options, index=tekn_index)
                 
                 try:
                     default_tutar = int(float(row_data.get('Tutar', 0)))
@@ -874,8 +860,6 @@ if check_password():
                 if st.button("💾 Güncelle", use_container_width=True):
                     # Validasyon
                     errors = []
-                    if n_tur == "Seçiniz...":
-                        errors.append("Tür seçimi zorunludur")
                     if n_kat == "Seçiniz...":
                         errors.append("Kategori seçimi zorunludur")
                     if n_tur == "Gelir" and n_kat == "Teknisyen Hastası" and n_tekn == "Seçiniz...":
@@ -911,13 +895,6 @@ if check_password():
                                             n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
                                             yaratma_tarihi, yaratma_saati]])
                                 st.cache_data.clear()
-                                
-                                # Session state temizle
-                                if "edit_tur" in st.session_state:
-                                    del st.session_state.edit_tur
-                                if "edit_kat" in st.session_state:
-                                    del st.session_state.edit_kat
-                                
                                 st.success("✅ Güncelleme başarılı!")
                                 import time
                                 time.sleep(0.5)
@@ -990,40 +967,38 @@ if check_password():
         st.markdown("### ➕ Yeni Kayıt")
         st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
         
-        # Form DIŞINDA - Tür ve Kategori seçimi
-        f_tur = st.selectbox("📊 Tür *", ["Seçiniz...", "Gelir", "Gider"], key="form_tur")
-        
-        # Kategori - Türe göre dinamik
-        if f_tur == "Gelir":
-            f_kat_options = ["Seçiniz..."] + get_gelir_kategorileri()
-        elif f_tur == "Gider":
-            f_kat_options = ["Seçiniz..."] + get_gider_kategorileri()
-        else:
-            f_kat_options = ["Seçiniz..."]
-        
-        f_kat = st.selectbox("📁 Kategori *", f_kat_options, key="form_kat")
-        
-        # Teknisyen - Sadece Gelir + Teknisyen Hastası için
-        if f_tur == "Gelir" and f_kat == "Teknisyen Hastası":
-            f_tekn_options = ["Seçiniz..."] + get_teknisyen_listesi()
-            f_tekn = st.selectbox("👨‍⚕️ Teknisyen *", f_tekn_options, key="form_tekn")
-        else:
-            f_tekn_options = ["YOK"] + get_teknisyen_listesi()
-            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", f_tekn_options, key="form_tekn")
-        
-        # Form İÇİNDE - Diğer alanlar
         with st.form("form_v22_final", clear_on_submit=False):
             f_tar = st.date_input("📅 Tarih", date.today())
+            
+            # Tür - Radio Button (Rerun yok, form içinde)
+            f_tur = st.radio("📊 Tür *", ["Gelir", "Gider"], horizontal=True, index=None)
+            
+            # Kategori - Türe göre conditional rendering
+            if f_tur == "Gelir":
+                f_kat = st.selectbox("📁 Kategori *", ["Seçiniz..."] + get_gelir_kategorileri())
+            elif f_tur == "Gider":
+                f_kat = st.selectbox("📁 Kategori *", ["Seçiniz..."] + get_gider_kategorileri())
+            else:
+                f_kat = st.selectbox("📁 Kategori *", ["Seçiniz..."])
+                st.info("ℹ️ Önce Tür seçin")
+            
             f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
             f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR", "GBP"])
             f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
+            
+            # Teknisyen - Sadece Gelir + Teknisyen Hastası için zorunlu
+            if f_tur == "Gelir" and f_kat == "Teknisyen Hastası":
+                f_tekn = st.selectbox("👨‍⚕️ Teknisyen *", ["Seçiniz..."] + get_teknisyen_listesi())
+            else:
+                f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK"] + get_teknisyen_listesi())
+            
             f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
             
             submitted = st.form_submit_button("✅ Ekle", use_container_width=True)
             if submitted:
                 # Validasyon
                 errors = []
-                if f_tur == "Seçiniz...":
+                if not f_tur:
                     errors.append("Tür seçimi zorunludur")
                 if f_kat == "Seçiniz...":
                     errors.append("Kategori seçimi zorunludur")
