@@ -995,7 +995,7 @@ if check_password():
         st.markdown("### ➕ Yeni Kayıt")
         st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
         
-        with st.form("form_v22_final", clear_on_submit=True):
+        with st.form("form_v22_final", clear_on_submit=False):
             f_tar = st.date_input("📅 Tarih", date.today())
             
             # Tür - Selectbox
