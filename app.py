@@ -432,7 +432,7 @@ def check_password():
                         st.session_state.logged_in = True
                         st.session_state.username = username
                         st.session_state.role = st.secrets["roles"][username]
-                        st.success(f"✅ Hoş geldiniz, {username.UPPER()}!")
+                        st.success(f"✅ Hoş geldiniz, {username.upper()}!")
                         import time
                         time.sleep(0.5)
                         st.rerun()
