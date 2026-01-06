@@ -58,7 +58,7 @@ def load_custom_css():
         /* Metrik Kartları - Beyaz Kartlar */
         [data-testid="metric-container"] {
             background: white;
-            padding: 24px;
+            padding: 16px;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             border: 1px solid var(--border);
@@ -144,20 +144,31 @@ def load_custom_css():
         /* Başlıklar */
         h1 {
             color: var(--primary) !important;
-            font-weight: 800;
-            margin-bottom: 30px;
+            font-weight: 700 !important;
+            font-size: 20px !important;
+            margin-bottom: 5px !important;
+            margin-top: 0px !important;
         }
         
-        h2, h3 {
+        h2 {
+            color: var(--primary) !important;
+            font-weight: 700 !important;
+            font-size: 18px !important;
+            margin-bottom: 10px !important;
+        }
+        
+        h3 {
             color: var(--primary) !important;
             font-weight: 700;
+            font-size: 16px !important;
         }
         
         /* Selectbox */
         [data-baseweb="select"] {
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1px solid var(--border) !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            max-width: 250px;
         }
         
         /* Input Alanları - Selectbox hariç */
@@ -165,9 +176,10 @@ def load_custom_css():
         textarea {
             border-radius: 8px !important;
             border: 1.5px solid var(--border) !important;
-            padding: 12px !important;
+            padding: 8px 12px !important;
             transition: all 0.3s ease;
             background: white !important;
+            font-size: 14px !important;
         }
         
         input:not([role="combobox"]):focus, 
@@ -264,7 +276,7 @@ def load_custom_css():
         
         /* Tablo satırları için tutarlı padding */
         [data-testid="column"] > div {
-            padding: 8px 0px 8px 2mm;
+            padding: 4px 0px 4px 2mm;
             text-align: left;
         }
         
@@ -273,25 +285,29 @@ def load_custom_css():
             border: none;
             height: 1px;
             background: var(--border);
-            margin: 20px 0;
+            margin: 10px 0;
         }
         
         /* Form Container */
         [data-testid="stForm"] {
             background: white;
-            padding: 25px;
+            padding: 15px;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             border: 1px solid var(--border);
         }
         
-        /* Yan Panel (Yeni Kayıt) */
+        /* Yan Panel (Yeni Kayıt) - STICKY */
         .element-container:has([data-testid="stForm"]) {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
             border: 1px solid var(--border);
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
         }
         
         /* Uyarı Mesajları */
@@ -331,7 +347,7 @@ def load_custom_css():
         
         /* Tablo Satırları */
         .element-container {
-            padding: 8px 0;
+            padding: 2px 0;
         }
         
         /* Veri Satırları Hover */
@@ -507,19 +523,18 @@ if check_password():
     load_custom_css()  # CSS yükle
     
     # Üst bar: Kullanıcı bilgisi ve logout
-    col_title, col_user = st.columns([0.85, 0.15])
+    col_title, col_user = st.columns([0.8, 0.2])
     with col_title:
-        st.title("🦷 Klinik 2026 Yönetim Paneli")
+        st.markdown("### 🦷 Klinik 2026")
     with col_user:
-        st.write("")  # Boşluk
-        user_display = f"👤 **{st.session_state.username.upper()}**"
+        user_display = f"**{st.session_state.username.upper()}**"
         if st.session_state.role == "admin":
             user_display += " 🔑"
-        st.markdown(user_display)
-        if st.button("🚪 Çıkış", key="logout_btn", use_container_width=True):
+        st.markdown(f'<div style="text-align: right; margin-top: 8px; font-size: 13px;">{user_display}</div>', unsafe_allow_html=True)
+        if st.button("🚪 Çıkış", key="logout_btn"):
             logout()
     
-    st.divider()
+    st.markdown('<hr style="margin: 8px 0;">', unsafe_allow_html=True)
     
     df_raw, worksheet = load_data()
     kurlar = get_exchange_rates()
@@ -562,8 +577,14 @@ if check_password():
     df['UPB_TRY'] = df.apply(safe_upb_calc, axis=1)
     
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
-    secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
+    
+    col_ay, col_spacer = st.columns([0.3, 0.7])
+    with col_ay:
+        secilen_ay_adi = st.selectbox("📅 Ay:", aylar, index=datetime.now().month - 1, label_visibility="visible")
+    
     secilen_ay_no = aylar.index(secilen_ay_adi) + 1
+    
+    st.markdown('<div style="margin: 10px 0;"></div>', unsafe_allow_html=True)
 
     # Açılış bakiyesini hesapla
     if secilen_ay_no == 1:
@@ -749,22 +770,16 @@ if check_password():
     col_main, col_side = st.columns([4.5, 1])
 
     with col_main:
-        st.subheader(f"📑 {secilen_ay_adi} Ayı Hareketleri")
-        
-        # DEBUG
-        st.caption(f"🔍 Toplam {len(df)} kayıt | Seçilen ay: {secilen_ay_no} | Filtre sonucu: ...")
+        st.markdown(f"### 📑 {secilen_ay_adi} Ayı Hareketleri")
+        st.markdown('<div style="margin: 8px 0;"></div>', unsafe_allow_html=True)
         
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
-        
-        st.caption(f"🔍 {len(df_display)} kayıt bu ayda")
-        
-        # Tarih kontrolü
-        if len(df) > 0:
-            st.caption(f"🔍 İlk kayıt tarihi: {df['Tarih_DT'].min()} | Son kayıt tarihi: {df['Tarih_DT'].max()}")
         
         search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         if search_term:
             df_display = df_display[df_display.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)]
+        
+        st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
 
         c = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
         heads = ["ID", "Tarih", "Tür", "Hasta Adı", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]
@@ -898,7 +913,8 @@ if check_password():
                 show_delete_modal(row)
 
     with col_side:
-        st.subheader("➕ Yeni Kayıt")
+        st.markdown("### ➕ Yeni Kayıt")
+        st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
         with st.form("form_v22_final", clear_on_submit=True):
             f_tar = st.date_input("📅 Tarih", date.today())
             f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
