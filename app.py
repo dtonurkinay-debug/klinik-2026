@@ -995,7 +995,11 @@ if check_password():
         st.markdown("### ➕ Yeni Kayıt")
         st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
         
-        with st.form("form_v22_final", clear_on_submit=False):
+        # Form key'ini session state'te tut, başarılı kayıt sonrası değiştir
+        if "form_key" not in st.session_state:
+            st.session_state.form_key = 0
+        
+        with st.form(f"form_v22_final_{st.session_state.form_key}", clear_on_submit=False):
             f_tar = st.date_input("📅 Tarih", date.today())
             
             # Tür - Selectbox
@@ -1086,6 +1090,7 @@ if check_password():
                             
                             # Cache'i temizle ve sayfayı yenile
                             st.cache_data.clear()
+                            st.session_state.form_key += 1  # Form key'ini artır - yeni form oluştur
                             st.success("✅ Kayıt eklendi!")
                             import time
                             time.sleep(0.5)
