@@ -485,12 +485,31 @@ if check_password():
     if "show_currency_detail" not in st.session_state:
         st.session_state.show_currency_detail = False
     
-    # Para birimi bazında açılış bakiyesi
-    def calc_acilis_by_currency():
+    # Para birimi bazında açılış bakiyesi (seçilen ay için)
+    def calc_acilis_by_currency(ay_no):
         currencies = {'TRY': 0, 'USD': 0, 'EUR': 0, 'GBP': 0}
-        if len(df_acilis) > 0:
+        
+        if ay_no == 1:
+            # Ocak: Excel'deki ACILIS kayıtlarından al
+            if len(df_acilis) > 0:
+                for curr in currencies.keys():
+                    currencies[curr] = df_acilis[df_acilis['Para Birimi'] == curr]['Tutar'].sum()
+        else:
+            # Diğer aylar: Önceki ayın net kasası
+            df_onceki = df[df['Tarih_DT'].dt.month < ay_no].copy()
+            
+            # Önce Excel ACILIS'i al
+            acilis_base = {'TRY': 0, 'USD': 0, 'EUR': 0, 'GBP': 0}
+            if len(df_acilis) > 0:
+                for curr in acilis_base.keys():
+                    acilis_base[curr] = df_acilis[df_acilis['Para Birimi'] == curr]['Tutar'].sum()
+            
+            # Önceki ayların gelir - gider
             for curr in currencies.keys():
-                currencies[curr] = df_acilis[df_acilis['Para Birimi'] == curr]['Tutar'].sum()
+                gelir = df_onceki[(df_onceki["Islem Turu"] == "Gelir") & (df_onceki['Para Birimi'] == curr)]['Tutar'].sum()
+                gider = df_onceki[(df_onceki["Islem Turu"] == "Gider") & (df_onceki['Para Birimi'] == curr)]['Tutar'].sum()
+                currencies[curr] = acilis_base[curr] + gelir - gider
+        
         return currencies
     
     # Para birimi bazında gelir/gider (seçilen ay için)
@@ -505,23 +524,18 @@ if check_password():
     def calc_net_by_currency(ay_no):
         currencies = {'TRY': 0, 'USD': 0, 'EUR': 0, 'GBP': 0}
         
-        # Açılış bakiyesi
-        acilis_curr = calc_acilis_by_currency()
+        # Açılış bakiyesi (seçilen ay için)
+        acilis_curr = calc_acilis_by_currency(ay_no)
         
-        # Seçilen aya kadar tüm hareketler
-        if ay_no == 1:
-            df_cumulative = df_secilen_ay.copy()
-        else:
-            df_cumulative = df[df['Tarih_DT'].dt.month <= ay_no].copy()
-        
+        # Sadece seçilen ayın hareketleri
         for curr in currencies.keys():
-            gelir = df_cumulative[(df_cumulative["Islem Turu"] == "Gelir") & (df_cumulative['Para Birimi'] == curr)]['Tutar'].sum()
-            gider = df_cumulative[(df_cumulative["Islem Turu"] == "Gider") & (df_cumulative['Para Birimi'] == curr)]['Tutar'].sum()
+            gelir = df_secilen_ay[(df_secilen_ay["Islem Turu"] == "Gelir") & (df_secilen_ay['Para Birimi'] == curr)]['Tutar'].sum()
+            gider = df_secilen_ay[(df_secilen_ay["Islem Turu"] == "Gider") & (df_secilen_ay['Para Birimi'] == curr)]['Tutar'].sum()
             currencies[curr] = acilis_curr[curr] + gelir - gider
         
         return currencies
     
-    acilis_curr = calc_acilis_by_currency()
+    acilis_curr = calc_acilis_by_currency(secilen_ay_no)
     gelir_curr = calc_gelir_gider_by_currency(df_secilen_ay, "Gelir")
     gider_curr = calc_gelir_gider_by_currency(df_secilen_ay, "Gider")
     net_curr = calc_net_by_currency(secilen_ay_no)
