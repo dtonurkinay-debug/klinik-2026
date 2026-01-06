@@ -387,12 +387,14 @@ except:
     except:
         pass  # Sessizce geç, uyarı gösterme
 
-# --- 2. GÜVENLİK ---
-PASSWORD = "klinik2026"
-
+# --- 2. GÜVENLİK VE YETKİLENDİRME ---
 def check_password():
-    if "password_correct" not in st.session_state:
-        load_custom_css()  # CSS yükle
+    """Kullanıcı girişi ve yetkilendirme"""
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    
+    if not st.session_state.logged_in:
+        load_custom_css()
         
         st.markdown("""
         <div class="login-container">
@@ -404,15 +406,33 @@ def check_password():
         # Login formu
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
+            username = st.text_input("👤 Kullanıcı Adı", placeholder="admin, desk1 veya desk2")
             pwd = st.text_input("🔐 Şifre", type="password", placeholder="Şifrenizi girin...")
+            
             if st.button("Giriş Yap", use_container_width=True, type="primary"):
-                if pwd == PASSWORD:
-                    st.session_state.password_correct = True
-                    st.rerun()
+                # Kullanıcı kontrolü
+                if username in st.secrets["users"]:
+                    if pwd == st.secrets["users"][username]:
+                        st.session_state.logged_in = True
+                        st.session_state.username = username
+                        st.session_state.role = st.secrets["roles"][username]
+                        st.success(f"✅ Hoş geldiniz, {username.upper()}!")
+                        import time
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.error("❌ Hatalı şifre!")
                 else:
-                    st.error("❌ Hatalı şifre! Lütfen tekrar deneyin.")
+                    st.error("❌ Kullanıcı bulunamadı!")
         return False
     return True
+
+def logout():
+    """Çıkış yap"""
+    st.session_state.logged_in = False
+    st.session_state.username = None
+    st.session_state.role = None
+    st.rerun()
 
 # --- 3. FONKSİYONLAR ---
 @st.cache_data(ttl=3600)
@@ -486,6 +506,21 @@ st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide", page_icon="
 if check_password():
     load_custom_css()  # CSS yükle
     
+    # Üst bar: Kullanıcı bilgisi ve logout
+    col_title, col_user = st.columns([0.85, 0.15])
+    with col_title:
+        st.title("🦷 Klinik 2026 Yönetim Paneli")
+    with col_user:
+        st.write("")  # Boşluk
+        user_display = f"👤 **{st.session_state.username.upper()}**"
+        if st.session_state.role == "admin":
+            user_display += " 🔑"
+        st.markdown(user_display)
+        if st.button("🚪 Çıkış", key="logout_btn", use_container_width=True):
+            logout()
+    
+    st.divider()
+    
     df_raw, worksheet = load_data()
     kurlar = get_exchange_rates()
     
@@ -525,8 +560,6 @@ if check_password():
             return 0.0
     
     df['UPB_TRY'] = df.apply(safe_upb_calc, axis=1)
-
-    st.title("🦷 Klinik 2026 Yönetim Paneli")
     
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     secilen_ay_adi = st.selectbox("📅 İzlenecek Ayı Seçin:", aylar, index=datetime.now().month - 1)
@@ -632,82 +665,84 @@ if check_password():
         html += '</div>'
         return html
     
-    # Metrikleri göster - 5 Ana Kolon
-    m1, m2, m3, m4, m5 = st.columns(5)
-    
-    with m1:
-        st.metric("💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
-        if st.session_state.show_currency_detail:
-            st.markdown(render_currency_detail(acilis_curr, True), unsafe_allow_html=True)
-    
-    with m2:
-        st.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
-        if st.session_state.show_currency_detail:
-            st.markdown(render_currency_detail(gelir_curr, True), unsafe_allow_html=True)
-    
-    with m3:
-        st.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
-        if st.session_state.show_currency_detail:
-            st.markdown(render_currency_detail(gider_curr, True), unsafe_allow_html=True)
-    
-    with m4:
-        st.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
-        if st.session_state.show_currency_detail:
-            st.markdown(render_currency_detail(net_curr, True), unsafe_allow_html=True)
-    
-    with m5:
-        # Kurlar başlığına mini toggle ekle
-        toggle_icon = "🔼" if st.session_state.show_currency_detail else "🔽"
-        col_title2, col_toggle2 = st.columns([0.85, 0.15])
-        with col_title2:
-            st.metric("💱 Kurlar", "")
-        with col_toggle2:
-            # Butonu aşağı hizala
-            st.markdown('<div style="margin-top: 28px;"></div>', unsafe_allow_html=True)
-            if st.button(toggle_icon, key="toggle_kurlar", help="Detayları göster/gizle"):
-                st.session_state.show_currency_detail = not st.session_state.show_currency_detail
-                st.rerun()
+    # Metrikleri göster - Sadece ADMIN için
+    if st.session_state.role == "admin":
+        m1, m2, m3, m4, m5 = st.columns(5)
         
-        if st.session_state.show_currency_detail:
-            st.markdown(render_rates_detail(True), unsafe_allow_html=True)
-
-    # --- ANALİZ PANELİ ---
-    with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
-        df_trends = df.copy()
-        df_trends['Ay_No'] = df_trends['Tarih_DT'].dt.month
-        df_trends['Ay_Ad'] = df_trends['Tarih_DT'].dt.strftime('%B')
+        with m1:
+            st.metric("💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
+            if st.session_state.show_currency_detail:
+                st.markdown(render_currency_detail(acilis_curr, True), unsafe_allow_html=True)
         
-        trend_summary = df_trends.groupby(['Ay_No', 'Ay_Ad', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
-        trend_summary = trend_summary.sort_values('Ay_No')
+        with m2:
+            st.metric(f"💰 Gelir ({secilen_ay_adi})", f"{format_int(t_gelir)} ₺")
+            if st.session_state.show_currency_detail:
+                st.markdown(render_currency_detail(gelir_curr, True), unsafe_allow_html=True)
+        
+        with m3:
+            st.metric(f"💸 Gider ({secilen_ay_adi})", f"{format_int(t_gider)} ₺")
+            if st.session_state.show_currency_detail:
+                st.markdown(render_currency_detail(gider_curr, True), unsafe_allow_html=True)
+        
+        with m4:
+            st.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
+            if st.session_state.show_currency_detail:
+                st.markdown(render_currency_detail(net_curr, True), unsafe_allow_html=True)
+        
+        with m5:
+            # Kurlar başlığına mini toggle ekle
+            toggle_icon = "🔼" if st.session_state.show_currency_detail else "🔽"
+            col_title2, col_toggle2 = st.columns([0.85, 0.15])
+            with col_title2:
+                st.metric("💱 Kurlar", "")
+            with col_toggle2:
+                # Butonu aşağı hizala
+                st.markdown('<div style="margin-top: 28px;"></div>', unsafe_allow_html=True)
+                if st.button(toggle_icon, key="toggle_kurlar", help="Detayları göster/gizle"):
+                    st.session_state.show_currency_detail = not st.session_state.show_currency_detail
+                    st.rerun()
+            
+            if st.session_state.show_currency_detail:
+                st.markdown(render_rates_detail(True), unsafe_allow_html=True)
 
-        g1, g2 = st.columns(2)
-        with g1:
-            fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', 
-                          title="Aylık Gelir/Gider Trendi", markers=True)
-            fig1.update_layout(plot_bgcolor='white', paper_bgcolor='white')
-            st.plotly_chart(fig1, use_container_width=True)
-        with g2:
-            fig2 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"], 
-                         values='UPB_TRY', names='Kategori', 
-                         title=f"Gelir Dağılımı ({secilen_ay_adi})", hole=0.4)
-            fig2.update_layout(plot_bgcolor='white', paper_bgcolor='white')
-            st.plotly_chart(fig2, use_container_width=True)
+    # --- ANALİZ PANELİ - Sadece ADMIN için ---
+    if st.session_state.role == "admin":
+        with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
+            df_trends = df.copy()
+            df_trends['Ay_No'] = df_trends['Tarih_DT'].dt.month
+            df_trends['Ay_Ad'] = df_trends['Tarih_DT'].dt.strftime('%B')
+            
+            trend_summary = df_trends.groupby(['Ay_No', 'Ay_Ad', 'Islem Turu'])['UPB_TRY'].sum().reset_index()
+            trend_summary = trend_summary.sort_values('Ay_No')
 
-        g3, g4 = st.columns(2)
-        with g3:
-            df_kasa = trend_summary.pivot(index='Ay_Ad', columns='Islem Turu', values='UPB_TRY').fillna(0)
-            if 'Gelir' in df_kasa and 'Gider' in df_kasa:
-                df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
-                df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
-                fig3 = px.area(df_kasa.reset_index(), x='Ay_Ad', y='Kumulatif', title="Kasa Büyüme Trendi")
-                fig3.update_layout(plot_bgcolor='white', paper_bgcolor='white')
-                st.plotly_chart(fig3, use_container_width=True)
-        with g4:
-            fig4 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"], 
-                         values='UPB_TRY', names='Kategori', 
-                         title=f"Gider Dağılımı ({secilen_ay_adi})", hole=0.4)
-            fig4.update_layout(plot_bgcolor='white', paper_bgcolor='white')
-            st.plotly_chart(fig4, use_container_width=True)
+            g1, g2 = st.columns(2)
+            with g1:
+                fig1 = px.line(trend_summary, x='Ay_Ad', y='UPB_TRY', color='Islem Turu', 
+                              title="Aylık Gelir/Gider Trendi", markers=True)
+                fig1.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+                st.plotly_chart(fig1, use_container_width=True)
+            with g2:
+                fig2 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gelir"], 
+                             values='UPB_TRY', names='Kategori', 
+                             title=f"Gelir Dağılımı ({secilen_ay_adi})", hole=0.4)
+                fig2.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+                st.plotly_chart(fig2, use_container_width=True)
+
+            g3, g4 = st.columns(2)
+            with g3:
+                df_kasa = trend_summary.pivot(index='Ay_Ad', columns='Islem Turu', values='UPB_TRY').fillna(0)
+                if 'Gelir' in df_kasa and 'Gider' in df_kasa:
+                    df_kasa['Net'] = df_kasa['Gelir'] - df_kasa['Gider']
+                    df_kasa['Kumulatif'] = df_kasa['Net'].cumsum()
+                    fig3 = px.area(df_kasa.reset_index(), x='Ay_Ad', y='Kumulatif', title="Kasa Büyüme Trendi")
+                    fig3.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+                    st.plotly_chart(fig3, use_container_width=True)
+            with g4:
+                fig4 = px.pie(df_secilen_ay[df_secilen_ay["Islem Turu"] == "Gider"], 
+                             values='UPB_TRY', names='Kategori', 
+                             title=f"Gider Dağılımı ({secilen_ay_adi})", hole=0.4)
+                fig4.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+                st.plotly_chart(fig4, use_container_width=True)
 
     st.divider()
 
