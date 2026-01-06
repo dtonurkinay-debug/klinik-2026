@@ -523,14 +523,16 @@ if check_password():
     load_custom_css()  # CSS yükle
     
     # Üst bar: Kullanıcı bilgisi ve logout
-    col_title, col_user = st.columns([0.8, 0.2])
+    col_title, col_user, col_logout = st.columns([0.7, 0.15, 0.15])
     with col_title:
         st.markdown("### 🦷 Klinik 2026")
     with col_user:
         user_display = f"**{st.session_state.username.upper()}**"
         if st.session_state.role == "admin":
             user_display += " 🔑"
-        st.markdown(f'<div style="text-align: right; margin-top: 8px; font-size: 13px;">{user_display}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="text-align: right; margin-top: 12px; font-size: 13px;">{user_display}</div>', unsafe_allow_html=True)
+    with col_logout:
+        st.markdown('<div style="margin-top: 3px;"></div>', unsafe_allow_html=True)
         if st.button("🚪 Çıkış", key="logout_btn"):
             logout()
     
@@ -768,26 +770,25 @@ if check_password():
     col_main, col_side = st.columns([4.5, 1])
 
     with col_main:
-        # Başlık ve ay seçici yan yana
-        col_baslik, col_ay = st.columns([0.6, 0.4])
-        with col_baslik:
-            st.markdown(f"### 📑 {st.session_state.secilen_ay_adi} Ayı Hareketleri")
+        st.markdown(f"### 📑 {st.session_state.secilen_ay_adi} Ayı Hareketleri")
+        st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
+        
+        # Ay seçici ve arama yan yana
+        col_ay, col_arama = st.columns([0.25, 0.75])
         with col_ay:
-            st.markdown('<div style="margin-top: 5px;"></div>', unsafe_allow_html=True)
             yeni_ay = st.selectbox("Ay:", aylar, index=aylar.index(st.session_state.secilen_ay_adi), label_visibility="collapsed", key="ay_secici")
             if yeni_ay != st.session_state.secilen_ay_adi:
                 st.session_state.secilen_ay_adi = yeni_ay
                 st.rerun()
+        with col_arama:
+            search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         
-        st.markdown('<div style="margin: 8px 0;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
         
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
         
-        search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         if search_term:
             df_display = df_display[df_display.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)]
-        
-        st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
 
         c = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
         heads = ["ID", "Tarih", "Tür", "Hasta Adı", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]
