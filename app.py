@@ -921,66 +921,66 @@ if check_password():
                         except Exception as e:
                             st.error(f"❌ Güncelleme hatası: {str(e)}")
             edit_modal()
-
-        def show_delete_modal(row_data):
-            @st.dialog("⚠️ Kayıt Silme Onayı")
-            def delete_modal():
-                row_id = row_data.get('ID', '')
-                hasta = row_data.get('Hasta Adi', '')
-                tutar = row_data.get('Tutar', '0')
-                para = row_data.get('Para Birimi', 'TRY')
-                
-                st.error(f"**SİLİNECEK:** {row_id} | {hasta} | {tutar} {para}")
-                if st.button("🗑️ Evet, Sil", use_container_width=True, type="primary"):
-                    try:
-                        matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
-                        if len(matching_rows) > 0:
-                            idx = matching_rows.index[0] + 2
-                            
-                            # Direkt bağlantı aç
-                            creds = Credentials.from_service_account_info(
-                                st.secrets["gcp_service_account"], 
-                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
-                            )
-                            client = gspread.authorize(creds)
-                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
-                            
-                            sheet.update_cell(idx, 10, "X")
-                            st.cache_data.clear()
-                            st.success("✅ Silme başarılı!")
-                            import time
-                            time.sleep(0.5)
-                            st.rerun()
-                        else:
-                            st.error("❌ Kayıt bulunamadı!")
-                    except Exception as e:
-                        st.error(f"❌ Silme hatası: {str(e)}")
-            delete_modal()
-
-        # Satırları göster
-        for _, row in df_display.iterrows():
-            is_gelir = row.get('Islem Turu') == "Gelir"
-            badge_class = "gelir-badge" if is_gelir else "gider-badge"
-            r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
+    
+    def show_delete_modal(row_data):
+        @st.dialog("⚠️ Kayıt Silme Onayı")
+        def delete_modal():
+            row_id = row_data.get('ID', '')
+            hasta = row_data.get('Hasta Adi', '')
+            tutar = row_data.get('Tutar', '0')
+            para = row_data.get('Para Birimi', 'TRY')
             
-            r[0].write(row.iloc[0])
-            r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
-            r[2].markdown(f"<span class='{badge_class}'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
-            r[3].write(row.get('Hasta Adi', ''))
-            r[4].write(row.get('Kategori', ''))
-            r[5].write(row.get('Para Birimi', ''))
-            r[6].write(format_int(row.get('Tutar', 0)))
-            r[7].write(format_int(row.get('UPB_TRY', 0)))
-            r[8].write(row.get('Teknisyen', ''))
-            r[9].write(row.get('Aciklama', ''))
-            
-            btn_e, btn_d = r[10].columns(2)
-            if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
-                show_edit_modal(row)
-            if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
-                show_delete_modal(row)
+            st.error(f"**SİLİNECEK:** {row_id} | {hasta} | {tutar} {para}")
+            if st.button("🗑️ Evet, Sil", use_container_width=True, type="primary"):
+                try:
+                    matching_rows = df_raw[df_raw.iloc[:,0] == row_id]
+                    if len(matching_rows) > 0:
+                        idx = matching_rows.index[0] + 2
+                        
+                        # Direkt bağlantı aç
+                        creds = Credentials.from_service_account_info(
+                            st.secrets["gcp_service_account"], 
+                            scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                        )
+                        client = gspread.authorize(creds)
+                        sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                        
+                        sheet.update_cell(idx, 10, "X")
+                        st.cache_data.clear()
+                        st.success("✅ Silme başarılı!")
+                        import time
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.error("❌ Kayıt bulunamadı!")
+                except Exception as e:
+                    st.error(f"❌ Silme hatası: {str(e)}")
+        delete_modal()
 
-    with col_side:
-        # Modal Açma Butonu
-        if st.button("➕ Yeni Kayıt Ekle", use_container_width=True, type="primary"):
-            show_add_modal()
+    # Satırları göster
+    for _, row in df_display.iterrows():
+        is_gelir = row.get('Islem Turu') == "Gelir"
+        badge_class = "gelir-badge" if is_gelir else "gider-badge"
+        r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
+        
+        r[0].write(row.iloc[0])
+        r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
+        r[2].markdown(f"<span class='{badge_class}'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
+        r[3].write(row.get('Hasta Adi', ''))
+        r[4].write(row.get('Kategori', ''))
+        r[5].write(row.get('Para Birimi', ''))
+        r[6].write(format_int(row.get('Tutar', 0)))
+        r[7].write(format_int(row.get('UPB_TRY', 0)))
+        r[8].write(row.get('Teknisyen', ''))
+        r[9].write(row.get('Aciklama', ''))
+        
+        btn_e, btn_d = r[10].columns(2)
+        if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
+            show_edit_modal(row)
+        if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
+            show_delete_modal(row)
+
+with col_side:
+    # Modal Açma Butonu
+    if st.button("➕ Yeni Kayıt Ekle", use_container_width=True, type="primary"):
+        show_add_modal()
