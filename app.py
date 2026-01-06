@@ -433,8 +433,6 @@ def check_password():
                         st.session_state.username = username
                         st.session_state.role = st.secrets["roles"][username]
                         st.success(f"✅ Hoş geldiniz, {username.upper()}!")
-                        import time
-                        time.sleep(0.5)
                         st.rerun()
                     else:
                         st.error("❌ Hatalı şifre!")
@@ -928,8 +926,6 @@ if check_password():
                                             yaratma_tarihi, yaratma_saati]])
                                 st.cache_data.clear()
                                 st.success("✅ Güncelleme başarılı!")
-                                import time
-                                time.sleep(0.5)
                                 st.rerun()
                             else:
                                 st.error("❌ Kayıt bulunamadı!")
@@ -963,8 +959,6 @@ if check_password():
                             sheet.update_cell(idx, 10, "X")
                             st.cache_data.clear()
                             st.success("✅ Silme başarılı!")
-                            import time
-                            time.sleep(0.5)
                             st.rerun()
                         else:
                             st.error("❌ Kayıt bulunamadı!")
@@ -1100,8 +1094,6 @@ if check_password():
                             st.cache_data.clear()
                             st.session_state.form_key += 1  # Form key'ini artır - yeni form oluştur
                             st.success("✅ Kayıt eklendi!")
-                            import time
-                            time.sleep(0.5)
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ Ekleme hatası detay: {str(e)}")
