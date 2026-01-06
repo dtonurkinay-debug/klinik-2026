@@ -611,10 +611,6 @@ if check_password():
         html += '</div>'
         return html
     
-    # Toggle state for kurlar
-    if "show_rates_detail" not in st.session_state:
-        st.session_state.show_rates_detail = False
-    
     # Metrikleri göster - 5 Ana Kolon
     m1, m2, m3, m4, m5 = st.columns(5)
     
@@ -634,7 +630,7 @@ if check_password():
             st.markdown(render_currency_detail(gider_curr, True), unsafe_allow_html=True)
     
     with m4:
-        # Net Kasa başlığına mini toggle ekle
+        # Net Kasa başlığına mini toggle ekle (tüm detayları kontrol eder)
         toggle_icon = "🔼" if st.session_state.show_currency_detail else "🔽"
         col_title, col_toggle = st.columns([0.85, 0.15])
         with col_title:
@@ -648,17 +644,8 @@ if check_password():
             st.markdown(render_currency_detail(net_curr, True), unsafe_allow_html=True)
     
     with m5:
-        # Kurlar başlığına mini toggle ekle
-        rates_toggle_icon = "🔼" if st.session_state.show_rates_detail else "🔽"
-        col_title2, col_toggle2 = st.columns([0.85, 0.15])
-        with col_title2:
-            st.metric("💱 Kurlar", "TCMB")
-        with col_toggle2:
-            if st.button(rates_toggle_icon, key="toggle_rates", help="Döviz kurlarını göster"):
-                st.session_state.show_rates_detail = not st.session_state.show_rates_detail
-                st.rerun()
-        
-        if st.session_state.show_rates_detail:
+        st.metric("💱 Kurlar", "")
+        if st.session_state.show_currency_detail:
             st.markdown(render_rates_detail(True), unsafe_allow_html=True)
 
     # --- ANALİZ PANELİ ---
