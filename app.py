@@ -578,13 +578,11 @@ if check_password():
     
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     
-    col_ay, col_spacer = st.columns([0.3, 0.7])
-    with col_ay:
-        secilen_ay_adi = st.selectbox("📅 Ay:", aylar, index=datetime.now().month - 1, label_visibility="visible")
+    # Ay seçimini başlangıçta yap ama gösterme
+    if "secilen_ay_adi" not in st.session_state:
+        st.session_state.secilen_ay_adi = aylar[datetime.now().month - 1]
     
-    secilen_ay_no = aylar.index(secilen_ay_adi) + 1
-    
-    st.markdown('<div style="margin: 10px 0;"></div>', unsafe_allow_html=True)
+    secilen_ay_no = aylar.index(st.session_state.secilen_ay_adi) + 1
 
     # Açılış bakiyesini hesapla
     if secilen_ay_no == 1:
@@ -770,7 +768,17 @@ if check_password():
     col_main, col_side = st.columns([4.5, 1])
 
     with col_main:
-        st.markdown(f"### 📑 {secilen_ay_adi} Ayı Hareketleri")
+        # Başlık ve ay seçici yan yana
+        col_baslik, col_ay = st.columns([0.6, 0.4])
+        with col_baslik:
+            st.markdown(f"### 📑 {st.session_state.secilen_ay_adi} Ayı Hareketleri")
+        with col_ay:
+            st.markdown('<div style="margin-top: 5px;"></div>', unsafe_allow_html=True)
+            yeni_ay = st.selectbox("Ay:", aylar, index=aylar.index(st.session_state.secilen_ay_adi), label_visibility="collapsed", key="ay_secici")
+            if yeni_ay != st.session_state.secilen_ay_adi:
+                st.session_state.secilen_ay_adi = yeni_ay
+                st.rerun()
+        
         st.markdown('<div style="margin: 8px 0;"></div>', unsafe_allow_html=True)
         
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
