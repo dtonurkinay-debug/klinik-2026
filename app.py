@@ -601,8 +601,22 @@ if check_password():
         html += '</div>'
         return html
     
-    # Metrikleri göster - 4 Ana Kolon
-    m1, m2, m3, m4 = st.columns(4)
+    # Helper function: Kurlar detay HTML
+    def render_rates_detail(show):
+        detail_class = "expanded" if show else "collapsed"
+        html = f'<div class="currency-detail {detail_class}">'
+        for symbol, curr in [("💲", "USD"), ("💶", "EUR"), ("💷", "GBP")]:
+            rate = format_rate(kurlar[curr])
+            html += f'<div class="currency-row"><span class="currency-label">{symbol} {curr}:</span><span>{rate} ₺</span></div>'
+        html += '</div>'
+        return html
+    
+    # Toggle state for kurlar
+    if "show_rates_detail" not in st.session_state:
+        st.session_state.show_rates_detail = False
+    
+    # Metrikleri göster - 5 Ana Kolon
+    m1, m2, m3, m4, m5 = st.columns(5)
     
     with m1:
         st.metric("💼 Açılış Bakiyesi", f"{format_int(acilis_bakiye_ay)} ₺")
@@ -633,13 +647,19 @@ if check_password():
         if st.session_state.show_currency_detail:
             st.markdown(render_currency_detail(net_curr, True), unsafe_allow_html=True)
     
-    st.write("")  # Boşluk
-    
-    # Kurlar - Alt satırda (her zaman görünür)
-    k1, k2, k3 = st.columns(3)
-    k1.metric("💲 USD Kuru", f"{format_rate(kurlar['USD'])} ₺")
-    k2.metric("💶 EUR Kuru", f"{format_rate(kurlar['EUR'])} ₺")
-    k3.metric("💷 GBP Kuru", f"{format_rate(kurlar['GBP'])} ₺")
+    with m5:
+        # Kurlar başlığına mini toggle ekle
+        rates_toggle_icon = "🔼" if st.session_state.show_rates_detail else "🔽"
+        col_title2, col_toggle2 = st.columns([0.85, 0.15])
+        with col_title2:
+            st.metric("💱 Kurlar", "TCMB")
+        with col_toggle2:
+            if st.button(rates_toggle_icon, key="toggle_rates", help="Döviz kurlarını göster"):
+                st.session_state.show_rates_detail = not st.session_state.show_rates_detail
+                st.rerun()
+        
+        if st.session_state.show_rates_detail:
+            st.markdown(render_rates_detail(True), unsafe_allow_html=True)
 
     # --- ANALİZ PANELİ ---
     with st.expander("📊 Grafiksel Analizleri Göster/Gizle", expanded=False):
