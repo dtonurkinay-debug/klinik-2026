@@ -414,7 +414,7 @@ def check_password():
         
         st.markdown("""
         <div class="login-container">
-            <div class="login-title">🦷 Klinik 2026</div>
+            <div class="login-title">🦷 Gelir-Gider Takip 2026</div>
             <div class="login-subtitle">Diş Kliniği Yönetim Sistemi</div>
         </div>
         """, unsafe_allow_html=True)
@@ -517,7 +517,7 @@ def format_rate(value):
         return "0,00"
 
 # --- ANA PROGRAM ---
-st.set_page_config(page_title="Klinik 2026 Analitik", layout="wide", page_icon="🦷")
+st.set_page_config(page_title="2026 Gelir-Gider Takip", layout="wide", page_icon="🦷")
 
 if check_password():
     load_custom_css()  # CSS yükle
@@ -525,7 +525,7 @@ if check_password():
     # Üst bar: Kullanıcı bilgisi ve logout
     col_title, col_user = st.columns([0.8, 0.2])
     with col_title:
-        st.markdown("### 🦷 Klinik 2026")
+        st.markdown("### 🦷 Gelir-Gider Takip 2026")
     with col_user:
         user_display = f"**{st.session_state.username.upper()}**"
         if st.session_state.role == "admin":
