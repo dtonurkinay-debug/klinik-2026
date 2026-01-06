@@ -432,7 +432,7 @@ def check_password():
                         st.session_state.logged_in = True
                         st.session_state.username = username
                         st.session_state.role = st.secrets["roles"][username]
-                        st.success(f"✅ Hoş geldiniz, {username.upper()}!")
+                        st.success(f"✅ Hoş geldiniz, {username.UPPER()}!")
                         import time
                         time.sleep(0.5)
                         st.rerun()
@@ -515,6 +515,21 @@ def format_rate(value):
         return f"{float(value):.2f}".replace(".", ",")
     except:
         return "0,00"
+
+# --- KATEGORI FONKSİYONLARI ---
+def get_gelir_kategorileri():
+    """Gelir kategorilerini döndür (alfabetik sıralı)"""
+    return sorted(["Klinik Hastası", "Teknisyen Hastası"])
+
+def get_gider_kategorileri():
+    """Gider kategorilerini döndür (alfabetik sıralı)"""
+    return sorted(["Kira", "Aidat", "E-Ödeme", "Personel Maaşı", "Laboratuvar", 
+                   "Implant", "Malzeme", "Mutfak", "Yemek", "Onur", "Birikim", 
+                   "Komisyon", "Diğer"])
+
+def get_teknisyen_listesi():
+    """Teknisyen listesini döndür (alfabetik sıralı)"""
+    return sorted(["Ali", "Cihat", "Murat", "Diğer"])
 
 # --- ANA PROGRAM ---
 st.set_page_config(page_title="2026 Gelir-Gider Takip", layout="wide", page_icon="🦷")
@@ -800,14 +815,40 @@ if check_password():
                 
                 c_m1, c_m2 = st.columns(2)
                 with c_m1:
-                    n_tur = st.selectbox("İşlem Türü", ["Gelir", "Gider"], 
-                                       index=0 if row_data.get('Islem Turu')=="Gelir" else 1)
+                    # Tür seçimi - ZORUNLU, DEFAULT YOK
+                    current_tur = row_data.get('Islem Turu', '')
+                    tur_options = ["Seçiniz...", "Gelir", "Gider"]
+                    tur_index = tur_options.index(current_tur) if current_tur in tur_options else 0
+                    n_tur = st.selectbox("İşlem Türü *", tur_options, index=tur_index)
+                    
                     curr_para = row_data.get('Para Birimi', 'TRY')
                     para_idx = ["TRY","USD","EUR","GBP"].index(curr_para) if curr_para in ["TRY","USD","EUR","GBP"] else 0
                     n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR", "GBP"], index=para_idx)
+                
                 with c_m2:
-                    n_kat = st.selectbox("Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
-                    n_tekn = st.selectbox("Teknisyen", ["YOK", "Ali", "Murat"])
+                    # Kategori - ZORUNLU, Türe göre dinamik
+                    if n_tur == "Gelir":
+                        kat_options = ["Seçiniz..."] + get_gelir_kategorileri()
+                    elif n_tur == "Gider":
+                        kat_options = ["Seçiniz..."] + get_gider_kategorileri()
+                    else:
+                        kat_options = ["Seçiniz..."]
+                    
+                    current_kat = row_data.get('Kategori', '')
+                    kat_index = kat_options.index(current_kat) if current_kat in kat_options else 0
+                    n_kat = st.selectbox("Kategori *", kat_options, index=kat_index)
+                    
+                    # Teknisyen - Sadece Gelir + Teknisyen Hastası için ZORUNLU
+                    if n_tur == "Gelir" and n_kat == "Teknisyen Hastası":
+                        tekn_options = ["Seçiniz..."] + get_teknisyen_listesi()
+                        current_tekn = row_data.get('Teknisyen', '')
+                        tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
+                        n_tekn = st.selectbox("Teknisyen *", tekn_options, index=tekn_index)
+                    else:
+                        tekn_options = ["YOK"] + get_teknisyen_listesi()
+                        current_tekn = row_data.get('Teknisyen', 'YOK')
+                        tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
+                        n_tekn = st.selectbox("Teknisyen", tekn_options, index=tekn_index)
                 
                 try:
                     default_tutar = int(float(row_data.get('Tutar', 0)))
@@ -817,8 +858,20 @@ if check_password():
                 n_acik = st.text_area("Açıklama", value=str(row_data.get('Aciklama', '')))
                 
                 if st.button("💾 Güncelle", use_container_width=True):
-                    if n_tut <= 0: 
-                        st.error("Lütfen geçerli bir tutar girin!")
+                    # Validasyon
+                    errors = []
+                    if n_tur == "Seçiniz...":
+                        errors.append("Tür seçimi zorunludur")
+                    if n_kat == "Seçiniz...":
+                        errors.append("Kategori seçimi zorunludur")
+                    if n_tur == "Gelir" and n_kat == "Teknisyen Hastası" and n_tekn == "Seçiniz...":
+                        errors.append("Teknisyen Hastası için Teknisyen seçimi zorunludur")
+                    if n_tut <= 0:
+                        errors.append("Tutar 0'dan büyük olmalıdır")
+                    
+                    if errors:
+                        for err in errors:
+                            st.error(f"❌ {err}")
                     else:
                         try:
                             row_id = row_data.get('ID', '')
@@ -840,7 +893,7 @@ if check_password():
                                 yaratma_saati = existing_row[11] if len(existing_row) > 11 else ""
                                 
                                 sheet.update(f"A{idx}:L{idx}", 
-                                          [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,  # ISO format
+                                          [[row_id, n_tar.strftime('%Y-%m-%d'), n_tur, n_hast,
                                             n_kat, n_para, int(n_tut), n_tekn, n_acik, "",
                                             yaratma_tarihi, yaratma_saati]])
                                 st.cache_data.clear()
@@ -917,18 +970,50 @@ if check_password():
         st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
         with st.form("form_v22_final", clear_on_submit=True):
             f_tar = st.date_input("📅 Tarih", date.today())
-            f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
+            
+            # Tür - ZORUNLU, DEFAULT YOK
+            f_tur = st.selectbox("📊 Tür *", ["Seçiniz...", "Gelir", "Gider"])
+            
+            # Kategori - ZORUNLU, Türe göre dinamik
+            if f_tur == "Gelir":
+                f_kat_options = ["Seçiniz..."] + get_gelir_kategorileri()
+            elif f_tur == "Gider":
+                f_kat_options = ["Seçiniz..."] + get_gider_kategorileri()
+            else:
+                f_kat_options = ["Seçiniz..."]
+            
+            f_kat = st.selectbox("📁 Kategori *", f_kat_options)
+            
             f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
-            f_kat = st.selectbox("📁 Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
             f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR", "GBP"])
             f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
-            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK", "Ali", "Murat"])
+            
+            # Teknisyen - Sadece Gelir + Teknisyen Hastası için ZORUNLU
+            if f_tur == "Gelir" and f_kat == "Teknisyen Hastası":
+                f_tekn_options = ["Seçiniz..."] + get_teknisyen_listesi()
+                f_tekn = st.selectbox("👨‍⚕️ Teknisyen *", f_tekn_options)
+            else:
+                f_tekn_options = ["YOK"] + get_teknisyen_listesi()
+                f_tekn = st.selectbox("👨‍⚕️ Teknisyen", f_tekn_options)
+            
             f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
             
             submitted = st.form_submit_button("✅ Ekle", use_container_width=True)
             if submitted:
+                # Validasyon
+                errors = []
+                if f_tur == "Seçiniz...":
+                    errors.append("Tür seçimi zorunludur")
+                if f_kat == "Seçiniz...":
+                    errors.append("Kategori seçimi zorunludur")
+                if f_tur == "Gelir" and f_kat == "Teknisyen Hastası" and f_tekn == "Seçiniz...":
+                    errors.append("Teknisyen Hastası için Teknisyen seçimi zorunludur")
                 if f_tut <= 0:
-                    st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
+                    errors.append("Tutar 0'dan büyük olmalıdır")
+                
+                if errors:
+                    for err in errors:
+                        st.error(f"❌ {err}")
                 else:
                     try:
                         now = datetime.now()
@@ -949,10 +1034,10 @@ if check_password():
                         
                         new_row = [
                             next_id, 
-                            f_tar.strftime('%Y-%m-%d'),  # ISO format Excel için
+                            f_tar.strftime('%Y-%m-%d'),
                             f_tur, f_hast, f_kat, f_para, 
                             int(f_tut), f_tekn, f_acik, "", 
-                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")  # ISO format
+                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
                         ]
                         
                         # Direkt yeni bağlantı aç
@@ -969,7 +1054,7 @@ if check_password():
                             st.cache_data.clear()
                             st.success("✅ Kayıt eklendi!")
                             import time
-                            time.sleep(0.5)  # Kısa bir bekleme
+                            time.sleep(0.5)
                             st.rerun()
                         except Exception as e:
                             st.error(f"❌ Ekleme hatası detay: {str(e)}")
