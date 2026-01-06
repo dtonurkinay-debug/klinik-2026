@@ -815,40 +815,28 @@ if check_password():
                 
                 c_m1, c_m2 = st.columns(2)
                 with c_m1:
-                    # Tür - Radio Button
-                    current_tur = row_data.get('Islem Turu', 'Gelir')
-                    n_tur = st.radio("📊 Tür *", ["Gelir", "Gider"], 
-                                    horizontal=True,
-                                    index=0 if current_tur == "Gelir" else 1)
+                    # Tür - Selectbox
+                    current_tur = row_data.get('Islem Turu', '')
+                    tur_options = ["Seçiniz...", "Gelir", "Gider"]
+                    tur_index = tur_options.index(current_tur) if current_tur in tur_options else 0
+                    n_tur = st.selectbox("İşlem Türü *", tur_options, index=tur_index)
                     
                     curr_para = row_data.get('Para Birimi', 'TRY')
                     para_idx = ["TRY","USD","EUR","GBP"].index(curr_para) if curr_para in ["TRY","USD","EUR","GBP"] else 0
                     n_para = st.selectbox("Döviz", ["TRY", "USD", "EUR", "GBP"], index=para_idx)
                 
                 with c_m2:
-                    # Kategori - Türe göre conditional rendering
+                    # Kategori - TÜM kategoriler
+                    all_kategoriler = ["Seçiniz..."] + get_gelir_kategorileri() + get_gider_kategorileri()
                     current_kat = row_data.get('Kategori', '')
+                    kat_index = all_kategoriler.index(current_kat) if current_kat in all_kategoriler else 0
+                    n_kat = st.selectbox("Kategori *", all_kategoriler, index=kat_index)
                     
-                    if n_tur == "Gelir":
-                        gelir_opts = ["Seçiniz..."] + get_gelir_kategorileri()
-                        kat_idx = gelir_opts.index(current_kat) if current_kat in gelir_opts else 0
-                        n_kat = st.selectbox("📁 Kategori *", gelir_opts, index=kat_idx)
-                    else:  # Gider
-                        gider_opts = ["Seçiniz..."] + get_gider_kategorileri()
-                        kat_idx = gider_opts.index(current_kat) if current_kat in gider_opts else 0
-                        n_kat = st.selectbox("📁 Kategori *", gider_opts, index=kat_idx)
-                    
-                    # Teknisyen - Sadece Gelir + Teknisyen Hastası için ZORUNLU
-                    if n_tur == "Gelir" and n_kat == "Teknisyen Hastası":
-                        tekn_options = ["Seçiniz..."] + get_teknisyen_listesi()
-                        current_tekn = row_data.get('Teknisyen', '')
-                        tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
-                        n_tekn = st.selectbox("👨‍⚕️ Teknisyen *", tekn_options, index=tekn_index)
-                    else:
-                        tekn_options = ["YOK"] + get_teknisyen_listesi()
-                        current_tekn = row_data.get('Teknisyen', 'YOK')
-                        tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
-                        n_tekn = st.selectbox("👨‍⚕️ Teknisyen", tekn_options, index=tekn_index)
+                    # Teknisyen - Sabit liste (boş bırakılabilir)
+                    current_tekn = row_data.get('Teknisyen', '')
+                    tekn_options = ["", "Ali", "Cihat", "Diğer"]
+                    tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
+                    n_tekn = st.selectbox("Teknisyen", tekn_options, index=tekn_index)
                 
                 try:
                     default_tutar = int(float(row_data.get('Tutar', 0)))
@@ -860,10 +848,30 @@ if check_password():
                 if st.button("💾 Güncelle", use_container_width=True):
                     # Validasyon
                     errors = []
+                    
+                    # Tür boş kontrolü
+                    if n_tur == "Seçiniz...":
+                        errors.append("Tür seçimi zorunludur")
+                    
+                    # Kategori boş kontrolü
                     if n_kat == "Seçiniz...":
                         errors.append("Kategori seçimi zorunludur")
-                    if n_tur == "Gelir" and n_kat == "Teknisyen Hastası" and n_tekn == "Seçiniz...":
+                    
+                    # Tür-Kategori uyum kontrolü
+                    gelir_kategoriler = get_gelir_kategorileri()
+                    gider_kategoriler = get_gider_kategorileri()
+                    
+                    if n_tur == "Gelir" and n_kat in gider_kategoriler:
+                        errors.append(f"'{n_kat}' bir Gider kategorisidir. Lütfen Gelir kategorisi seçin.")
+                    
+                    if n_tur == "Gider" and n_kat in gelir_kategoriler:
+                        errors.append(f"'{n_kat}' bir Gelir kategorisidir. Lütfen Gider kategorisi seçin.")
+                    
+                    # Teknisyen Hastası kontrolü
+                    if n_kat == "Teknisyen Hastası" and not n_tekn:
                         errors.append("Teknisyen Hastası için Teknisyen seçimi zorunludur")
+                    
+                    # Tutar kontrolü
                     if n_tut <= 0:
                         errors.append("Tutar 0'dan büyük olmalıdır")
                     
@@ -967,30 +975,22 @@ if check_password():
         st.markdown("### ➕ Yeni Kayıt")
         st.markdown('<div style="margin: 5px 0;"></div>', unsafe_allow_html=True)
         
-        with st.form("form_v22_final", clear_on_submit=False):
+        with st.form("form_v22_final", clear_on_submit=True):
             f_tar = st.date_input("📅 Tarih", date.today())
             
-            # Tür - Radio Button (Rerun yok, form içinde)
-            f_tur = st.radio("📊 Tür *", ["Gelir", "Gider"], horizontal=True, index=None)
+            # Tür - Selectbox
+            f_tur = st.selectbox("📊 Tür *", ["Seçiniz...", "Gelir", "Gider"])
             
-            # Kategori - Türe göre conditional rendering
-            if f_tur == "Gelir":
-                f_kat = st.selectbox("📁 Kategori *", ["Seçiniz..."] + get_gelir_kategorileri())
-            elif f_tur == "Gider":
-                f_kat = st.selectbox("📁 Kategori *", ["Seçiniz..."] + get_gider_kategorileri())
-            else:
-                f_kat = st.selectbox("📁 Kategori *", ["Seçiniz..."])
-                st.info("ℹ️ Önce Tür seçin")
+            # Kategori - TÜM kategoriler (Gelir önce, sonra Gider - alfabetik)
+            all_kategoriler = ["Seçiniz..."] + get_gelir_kategorileri() + get_gider_kategorileri()
+            f_kat = st.selectbox("📁 Kategori *", all_kategoriler)
             
             f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
             f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR", "GBP"])
             f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
             
-            # Teknisyen - Sadece Gelir + Teknisyen Hastası için zorunlu
-            if f_tur == "Gelir" and f_kat == "Teknisyen Hastası":
-                f_tekn = st.selectbox("👨‍⚕️ Teknisyen *", ["Seçiniz..."] + get_teknisyen_listesi())
-            else:
-                f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK"] + get_teknisyen_listesi())
+            # Teknisyen - Sabit liste (boş bırakılabilir)
+            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["", "Ali", "Cihat", "Diğer"])
             
             f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
             
@@ -998,12 +998,30 @@ if check_password():
             if submitted:
                 # Validasyon
                 errors = []
-                if not f_tur:
+                
+                # Tür boş kontrolü
+                if f_tur == "Seçiniz...":
                     errors.append("Tür seçimi zorunludur")
+                
+                # Kategori boş kontrolü
                 if f_kat == "Seçiniz...":
                     errors.append("Kategori seçimi zorunludur")
-                if f_tur == "Gelir" and f_kat == "Teknisyen Hastası" and f_tekn == "Seçiniz...":
+                
+                # Tür-Kategori uyum kontrolü
+                gelir_kategoriler = get_gelir_kategorileri()
+                gider_kategoriler = get_gider_kategorileri()
+                
+                if f_tur == "Gelir" and f_kat in gider_kategoriler:
+                    errors.append(f"'{f_kat}' bir Gider kategorisidir. Lütfen Gelir kategorisi seçin.")
+                
+                if f_tur == "Gider" and f_kat in gelir_kategoriler:
+                    errors.append(f"'{f_kat}' bir Gelir kategorisidir. Lütfen Gider kategorisi seçin.")
+                
+                # Teknisyen Hastası kontrolü
+                if f_kat == "Teknisyen Hastası" and not f_tekn:
                     errors.append("Teknisyen Hastası için Teknisyen seçimi zorunludur")
+                
+                # Tutar kontrolü
                 if f_tut <= 0:
                     errors.append("Tutar 0'dan büyük olmalıdır")
                 
