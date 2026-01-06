@@ -107,17 +107,24 @@ def load_custom_css():
         
         /* Mini Toggle Button */
         .mini-toggle {
-            float: right;
-            background: transparent;
-            border: none;
+            background: transparent !important;
+            border: none !important;
             cursor: pointer;
-            font-size: 16px;
-            padding: 4px;
+            font-size: 18px;
+            padding: 0 !important;
+            margin: 0 !important;
             transition: transform 0.3s ease;
+            box-shadow: none !important;
         }
         
         .mini-toggle:hover {
-            transform: scale(1.2);
+            transform: scale(1.3);
+            background: transparent !important;
+        }
+        
+        .mini-toggle:focus {
+            outline: none !important;
+            box-shadow: none !important;
         }
         
         [data-testid="stMetricLabel"] {
@@ -182,6 +189,20 @@ def load_custom_css():
         .stButton button:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        /* Toggle Butonu - Özel stil */
+        button[key="toggle_kurlar"] {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 4px 8px !important;
+            font-size: 18px !important;
+        }
+        
+        button[key="toggle_kurlar"]:hover {
+            transform: scale(1.15) !important;
+            box-shadow: none !important;
         }
         
         /* Giriş Butonu */
@@ -630,21 +651,23 @@ if check_password():
             st.markdown(render_currency_detail(gider_curr, True), unsafe_allow_html=True)
     
     with m4:
-        # Net Kasa başlığına mini toggle ekle (tüm detayları kontrol eder)
-        toggle_icon = "🔼" if st.session_state.show_currency_detail else "🔽"
-        col_title, col_toggle = st.columns([0.85, 0.15])
-        with col_title:
-            st.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
-        with col_toggle:
-            if st.button(toggle_icon, key="toggle_currency", help="Para birimlerine göre detay"):
-                st.session_state.show_currency_detail = not st.session_state.show_currency_detail
-                st.rerun()
-        
+        st.metric("💵 Net Kasa", f"{format_int(net_kasa)} ₺")
         if st.session_state.show_currency_detail:
             st.markdown(render_currency_detail(net_curr, True), unsafe_allow_html=True)
     
     with m5:
-        st.metric("💱 Kurlar", "")
+        # Kurlar başlığına mini toggle ekle
+        toggle_icon = "🔼" if st.session_state.show_currency_detail else "🔽"
+        col_title2, col_toggle2 = st.columns([0.85, 0.15])
+        with col_title2:
+            st.metric("💱 Kurlar", "")
+        with col_toggle2:
+            # Butonu aşağı hizala
+            st.markdown('<div style="margin-top: 28px;"></div>', unsafe_allow_html=True)
+            if st.button(toggle_icon, key="toggle_kurlar", help="Detayları göster/gizle"):
+                st.session_state.show_currency_detail = not st.session_state.show_currency_detail
+                st.rerun()
+        
         if st.session_state.show_currency_detail:
             st.markdown(render_rates_detail(True), unsafe_allow_html=True)
 
