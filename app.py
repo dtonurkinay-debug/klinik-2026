@@ -767,15 +767,7 @@ if check_password():
 
     st.divider()
 
-    # Slide panel toggle state
-    if "panel_open" not in st.session_state:
-        st.session_state.panel_open = False
-    
-    # Tablo genişliği - panel açıksa daralt
-    if st.session_state.panel_open:
-        col_main = st.container()
-    else:
-        col_main = st.container()
+    col_main, col_side = st.columns([4.5, 1])
 
     with col_main:
         st.markdown(f"### 📑 {st.session_state.secilen_ay_adi} Ayı Hareketleri")
@@ -803,8 +795,67 @@ if check_password():
         for col, h in zip(c, heads): col.markdown(f"**{h}**")
         st.write("---")
 
-        # Modal fonksiyonları
-        def show_edit_modal(row_data):
+    # Modal fonksiyonları
+    def show_add_modal():
+        @st.dialog("➕ Yeni Kayıt Ekle")
+        def add_modal():
+            with st.form("form_add_modal", clear_on_submit=True):
+                f_tar = st.date_input("📅 Tarih", date.today())
+                f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
+                f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
+                f_kat = st.selectbox("📁 Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
+                f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR", "GBP"])
+                f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
+                f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK", "Ali", "Murat"])
+                f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
+                
+                submitted = st.form_submit_button("✅ Ekle", use_container_width=True)
+                if submitted:
+                    if f_tut <= 0:
+                        st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
+                    else:
+                        try:
+                            now = datetime.now()
+                            
+                            if len(df_raw) > 0:
+                                normal_rows = df_raw[df_raw.get('Islem Turu', '') != 'ACILIS']
+                                if len(normal_rows) > 0:
+                                    existing_ids = pd.to_numeric(normal_rows.iloc[:, 0], errors='coerce').dropna()
+                                    if len(existing_ids) > 0:
+                                        next_id = int(existing_ids.max() + 1)
+                                    else:
+                                        next_id = 1
+                                else:
+                                    next_id = 1
+                            else:
+                                next_id = 1
+                            
+                            new_row = [
+                                next_id, 
+                                f_tar.strftime('%Y-%m-%d'),
+                                f_tur, f_hast, f_kat, f_para, 
+                                int(f_tut), f_tekn, f_acik, "", 
+                                now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
+                            ]
+                            
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"], 
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            sheet.append_row(new_row)
+                            
+                            st.cache_data.clear()
+                            st.success("✅ Kayıt eklendi!")
+                            import time
+                            time.sleep(0.5)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Ekleme hatası: {str(e)}")
+        add_modal()
+    
+    def show_edit_modal(row_data):
             @st.dialog(f"✏️ Düzenle: {row_data.get('Hasta Adi', 'Kayıt')}")
             def edit_modal():
                 n_hast = st.text_input("Hasta/Cari Adı", value=str(row_data.get('Hasta Adi', '')))
@@ -923,133 +974,13 @@ if check_password():
             r[8].write(row.get('Teknisyen', ''))
             r[9].write(row.get('Aciklama', ''))
             
-    # FAB Butonu (Streamlit Native)
-    # Sol alt köşeye sabitlenmiş buton
-    if not st.session_state.panel_open:
-        # Panel kapalıyken FAB göster
-        st.markdown("""
-        <style>
-        .stButton > button[kind="primary"] {
-            position: fixed !important;
-            bottom: 24px !important;
-            left: 24px !important;
-            width: 64px !important;
-            height: 64px !important;
-            border-radius: 50% !important;
-            padding: 0 !important;
-            font-size: 32px !important;
-            z-index: 999 !important;
-            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%) !important;
-            border: none !important;
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4) !important;
-        }
-        .stButton > button[kind="primary"]:hover {
-            transform: scale(1.1) !important;
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.6) !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        if st.button("➕", key="fab_btn", type="primary"):
-            st.session_state.panel_open = True
-            st.rerun()
-    
-    # Slide Panel (Streamlit Container)
-    if st.session_state.panel_open:
-        # Overlay + Panel container
-        st.markdown("""
-        <style>
-        .slide-panel-container {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 380px;
-            height: 100vh;
-            background: white;
-            box-shadow: -4px 0 20px rgba(0,0,0,0.15);
-            z-index: 1000;
-            overflow-y: auto;
-            padding: 20px;
-        }
-        .panel-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.3);
-            z-index: 999;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # Panel başlığı ve kapat butonu
-        col_panel_title, col_panel_close = st.columns([0.8, 0.2])
-        with col_panel_title:
-            st.markdown("### ➕ Yeni Kayıt")
-        with col_panel_close:
-            if st.button("✖️", key="close_panel"):
-                st.session_state.panel_open = False
-                st.rerun()
-        
-        st.markdown('<div style="margin: 10px 0;"></div>', unsafe_allow_html=True)
-        
-        with st.form("form_v22_final", clear_on_submit=True):
-            f_tar = st.date_input("📅 Tarih", date.today())
-            f_tur = st.selectbox("📊 Tür", ["Gelir", "Gider"])
-            f_hast = st.text_input("👤 Hasta/Cari", placeholder="Ad Soyad...")
-            f_kat = st.selectbox("📁 Kategori", ["İmplant", "Dolgu", "Maaş", "Kira", "Lab", "Diğer"])
-            f_para = st.selectbox("💱 Para Birimi", ["TRY", "USD", "EUR", "GBP"])
-            f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
-            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["YOK", "Ali", "Murat"])
-            f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
-            
-            submitted = st.form_submit_button("✅ Ekle", use_container_width=True)
-            if submitted:
-                if f_tut <= 0:
-                    st.warning("⚠️ Tutar 0'dan büyük olmalıdır!")
-                else:
-                    try:
-                        now = datetime.now()
-                        
-                        # ID hesaplarken ACILIS satırlarını hariç tut
-                        if len(df_raw) > 0:
-                            normal_rows = df_raw[df_raw.get('Islem Turu', '') != 'ACILIS']
-                            if len(normal_rows) > 0:
-                                existing_ids = pd.to_numeric(normal_rows.iloc[:, 0], errors='coerce').dropna()
-                                if len(existing_ids) > 0:
-                                    next_id = int(existing_ids.max() + 1)
-                                else:
-                                    next_id = 1
-                            else:
-                                next_id = 1
-                        else:
-                            next_id = 1
-                        
-                        new_row = [
-                            next_id, 
-                            f_tar.strftime('%Y-%m-%d'),
-                            f_tur, f_hast, f_kat, f_para, 
-                            int(f_tut), f_tekn, f_acik, "", 
-                            now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")
-                        ]
-                        
-                        try:
-                            creds = Credentials.from_service_account_info(
-                                st.secrets["gcp_service_account"], 
-                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
-                            )
-                            client = gspread.authorize(creds)
-                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
-                            sheet.append_row(new_row)
-                            
-                            st.cache_data.clear()
-                            st.success("✅ Kayıt eklendi!")
-                            st.session_state.panel_open = False  # Paneli kapat
-                            import time
-                            time.sleep(0.5)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Ekleme hatası detay: {str(e)}")
-                    except Exception as e:
-                        st.error(f"❌ Ekleme hatası: {str(e)}")
+            btn_e, btn_d = r[10].columns(2)
+            if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
+                show_edit_modal(row)
+            if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
+                show_delete_modal(row)
+
+    with col_side:
+        # Modal Açma Butonu
+        if st.button("➕ Yeni Kayıt Ekle", use_container_width=True, type="primary"):
+            show_add_modal()
