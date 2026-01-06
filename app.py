@@ -32,27 +32,27 @@ def load_custom_css():
         
         /* Login Ekranı */
         .login-container {
-            max-width: 420px;
-            margin: 100px auto;
-            padding: 50px;
+            max-width: 380px;
+            margin: 80px auto;
+            padding: 35px 40px;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
             border: 1px solid var(--border);
             text-align: center;
         }
         
         .login-title {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
             color: var(--primary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         
         .login-subtitle {
             color: var(--text-light);
-            margin-bottom: 30px;
-            font-size: 15px;
+            margin-bottom: 24px;
+            font-size: 14px;
         }
         
         /* Metrik Kartları - Beyaz Kartlar */
