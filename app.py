@@ -529,7 +529,7 @@ def get_gider_kategorileri():
 
 def get_teknisyen_listesi():
     """Teknisyen listesini döndür (alfabetik sıralı)"""
-    return sorted(["Ali", "Cihat", "Murat", "Diğer"])
+    return sorted(["Ali", "Cihat", "Murat", "Onur", "Diğer"])
 
 def clean_kategori(kat_with_prefix):
     """Kategori isminden (Gelir)/(Gider) prefix'ini temizle"""
@@ -852,7 +852,7 @@ if check_password():
                     
                     # Teknisyen - Sabit liste (boş bırakılabilir)
                     current_tekn = row_data.get('Teknisyen', '')
-                    tekn_options = ["", "Ali", "Cihat", "Diğer"]
+                    tekn_options = ["", "Ali", "Cihat", "Onur", "Diğer"]
                     tekn_index = tekn_options.index(current_tekn) if current_tekn in tekn_options else 0
                     n_tekn = st.selectbox("Teknisyen", tekn_options, index=tekn_index)
                 
@@ -1012,7 +1012,7 @@ if check_password():
             f_tut = st.number_input("💰 Tutar", min_value=0, step=1)
             
             # Teknisyen - Sabit liste (boş bırakılabilir)
-            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["", "Ali", "Cihat", "Diğer"])
+            f_tekn = st.selectbox("👨‍⚕️ Teknisyen", ["", "Ali", "Cihat", "Onur", "Diğer"])
             
             f_acik = st.text_input("📝 Açıklama", placeholder="Not ekle...")
             
