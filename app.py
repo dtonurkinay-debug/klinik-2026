@@ -331,6 +331,20 @@ def load_custom_css():
             box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3);
         }
         
+        /* Yellow Badge - Döviz Dönüşümü */
+        .doviz-badge {
+            background: linear-gradient(135deg, #F39C12 0%, #D68910 100%);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 6px rgba(243, 156, 18, 0.3);
+        }
+        
         /* Danger Badge - Gider */
         .gider-badge {
             background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
@@ -567,8 +581,8 @@ if check_password():
     # Açılış bakiyelerini ayır
     df_acilis = df_raw[(df_raw["Islem Turu"] == "ACILIS") & (df_raw["Silindi"] != "X")].copy()
     
-    # Normal işlemleri filtrele (Açılış ve Silindi hariç)
-    df = df_raw[(df_raw["Islem Turu"] != "ACILIS") & (df_raw["Silindi"] != "X")].copy()
+    # Normal işlemleri filtrele (Açılış, Döviz Dönüşümü ve Silindi hariç)
+    df = df_raw[(df_raw["Islem Turu"] != "ACILIS") & (df_raw["Islem Turu"] != "Döviz Dönüşümü") & (df_raw["Silindi"] != "X")].copy()
     
     # Açılış bakiyesini TRY'ye çevir
     def calculate_acilis_bakiye():
@@ -601,9 +615,13 @@ if check_password():
     
     aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
     
-    col_ay, col_spacer = st.columns([0.3, 0.7])
+    col_ay, col_doviz_btn, col_spacer = st.columns([0.3, 0.22, 0.48])
     with col_ay:
         secilen_ay_adi = st.selectbox("📅 Ay:", aylar, index=datetime.now().month - 1, label_visibility="visible")
+    with col_doviz_btn:
+        st.markdown('<div style="margin-top: 28px;"></div>', unsafe_allow_html=True)
+        if st.button("💱 Döviz Dönüşümü", key="btn_doviz_donusum", use_container_width=True):
+            st.session_state.show_doviz_modal = True
     
     secilen_ay_no = aylar.index(secilen_ay_adi) + 1
     
@@ -676,10 +694,13 @@ if check_password():
         acilis_curr = calc_acilis_by_currency(ay_no)
         
         # Sadece seçilen ayın hareketleri
+        df_konv = df_raw[(df_raw["Islem Turu"] == "Döviz Dönüşümü") & (df_raw["Silindi"] != "X") & (df_raw['Tarih_DT'].dt.month == ay_no)].copy()
         for curr in currencies.keys():
             gelir = df_secilen_ay[(df_secilen_ay["Islem Turu"] == "Gelir") & (df_secilen_ay['Para Birimi'] == curr)]['Tutar'].sum()
             gider = df_secilen_ay[(df_secilen_ay["Islem Turu"] == "Gider") & (df_secilen_ay['Para Birimi'] == curr)]['Tutar'].sum()
-            currencies[curr] = acilis_curr[curr] + gelir - gider
+            konv_giris = df_konv[(df_konv["Aciklama"].str.contains("KONV_GIRIS", na=False)) & (df_konv['Para Birimi'] == curr)]['Tutar'].sum()
+            konv_cikis = df_konv[(df_konv["Aciklama"].str.contains("KONV_CIKIS", na=False)) & (df_konv['Para Birimi'] == curr)]['Tutar'].sum()
+            currencies[curr] = acilis_curr[curr] + gelir - gider + konv_giris - konv_cikis
         
         return currencies
     
@@ -933,6 +954,84 @@ if check_password():
                             st.error(f"❌ Güncelleme hatası: {str(e)}")
             edit_modal()
 
+        # --- DÖVİZ DÖNÜŞÜMÜ MODAL ---
+        if "show_doviz_modal" not in st.session_state:
+            st.session_state.show_doviz_modal = False
+
+        if st.session_state.get("show_doviz_modal", False):
+            @st.dialog("💱 Döviz Dönüşümü")
+            def doviz_modal():
+                net_curr_modal = calc_net_by_currency(secilen_ay_no)
+                para_birimleri = ["TRY", "USD", "EUR", "GBP"]
+                semboller = {"TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£"}
+
+                st.markdown("#### Çıkış")
+                c1, c2 = st.columns(2)
+                with c1:
+                    cikis_para = st.selectbox("Para Birimi", para_birimleri, key="d_cikis_para")
+                with c2:
+                    mevcut_bakiye = net_curr_modal.get(cikis_para, 0)
+                    st.markdown(f"<div style='font-size:12px;color:#888;margin-top:4px;'>Mevcut: {format_int(mevcut_bakiye)} {semboller[cikis_para]}</div>", unsafe_allow_html=True)
+                    cikis_tutar = st.number_input("Çıkış Tutarı", min_value=0, step=1, key="d_cikis_tutar")
+
+                st.markdown("#### Giriş")
+                g1, g2, g3 = st.columns(3)
+                with g1:
+                    giris_para_options = [p for p in para_birimleri]
+                    giris_para = st.selectbox("Para Birimi", giris_para_options, key="d_giris_para", index=1)
+                with g2:
+                    default_kur = kurlar.get(cikis_para, 1.0) / kurlar.get(giris_para, 1.0) if giris_para != "TRY" else kurlar.get(cikis_para, 1.0)
+                    kur = st.number_input("Kur", min_value=0.0001, value=float(round(default_kur, 4)), format="%.4f", key="d_kur")
+                with g3:
+                    giris_tutar = int(cikis_tutar * kur)
+                    st.markdown(f"<div style='margin-top:28px; font-size:20px; font-weight:700; color:#27AE60;'>{format_int(giris_tutar)} {semboller[giris_para]}</div>", unsafe_allow_html=True)
+
+                st.markdown("---")
+                if st.button("💾 Kaydet", use_container_width=True, type="primary"):
+                    errors = []
+                    if cikis_para == giris_para:
+                        errors.append("Çıkış ve giriş para birimi aynı olamaz.")
+                    if cikis_tutar <= 0:
+                        errors.append("Çıkış tutarı 0'dan büyük olmalıdır.")
+                    if cikis_tutar > mevcut_bakiye:
+                        errors.append(f"Çıkış tutarı mevcut bakiyeyi ({format_int(mevcut_bakiye)} {semboller[cikis_para]}) aşamaz.")
+                    if errors:
+                        for e in errors:
+                            st.error(f"❌ {e}")
+                    else:
+                        try:
+                            now = datetime.now()
+                            bugun = date.today().strftime('%Y-%m-%d')
+                            
+                            # ID hesapla
+                            if len(df_raw) > 0:
+                                normal_rows = df_raw[df_raw["Islem Turu"] != 'ACILIS']
+                                existing_ids = pd.to_numeric(normal_rows.iloc[:, 0], errors='coerce').dropna()
+                                next_id = int(existing_ids.max() + 1) if len(existing_ids) > 0 else 1
+                            else:
+                                next_id = 1
+
+                            # Sütun sırası: ID, Tarih, Islem Turu, Hasta Adi, Kategori, Para Birimi, Tutar, Teknisyen, Aciklama, Silindi, Yaratma Tarihi, Yaratma Saati
+                            row_cikis = [next_id,     bugun, "Döviz Dönüşümü", "", "Döviz Dönüşümü", cikis_para, int(cikis_tutar), "", "KONV_CIKIS", "", now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")]
+                            row_giris = [next_id + 1, bugun, "Döviz Dönüşümü", "", "Döviz Dönüşümü", giris_para, int(giris_tutar), "", "KONV_GIRIS", "", now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S")]
+
+                            creds = Credentials.from_service_account_info(
+                                st.secrets["gcp_service_account"],
+                                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                            )
+                            client = gspread.authorize(creds)
+                            sheet = client.open_by_key("1TypLnTiG3M62ea2u2f6oxqHjR9CqfUJsiVrJb5i3-SM").sheet1
+                            sheet.append_row(row_cikis)
+                            sheet.append_row(row_giris)
+
+                            st.cache_data.clear()
+                            st.session_state.show_doviz_modal = False
+                            st.success("✅ Döviz dönüşümü kaydedildi!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Kayıt hatası: {str(e)}")
+            doviz_modal()
+
         def show_delete_modal(row_data):
             @st.dialog("⚠️ Kayıt Silme Onayı")
             def delete_modal():
@@ -988,6 +1087,36 @@ if check_password():
                 show_edit_modal(row)
             if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
                 show_delete_modal(row)
+
+        # --- DÖVİZ DÖNÜŞÜMÜ SATIRLARI ---
+        df_konv_display = df_raw[
+            (df_raw["Islem Turu"] == "Döviz Dönüşümü") &
+            (df_raw["Silindi"] != "X") &
+            (df_raw['Tarih_DT'].dt.month == secilen_ay_no)
+        ].copy()
+
+        if len(df_konv_display) > 0:
+            st.markdown("---")
+            st.markdown("#### 💱 Döviz Dönüşümleri")
+            kd = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
+            for col, h in zip(kd, ["ID", "Tarih", "Tür", "Hasta Adı", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]):
+                col.markdown(f"**{h}**")
+            st.write("---")
+            for _, row in df_konv_display.iterrows():
+                tip = "🔴 Çıkış" if "KONV_CIKIS" in str(row.get('Aciklama', '')) else "🟢 Giriş"
+                r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
+                r[0].write(row.iloc[0])
+                r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
+                r[2].markdown("<span class='doviz-badge'>Döviz</span>", unsafe_allow_html=True)
+                r[3].write("")
+                r[4].write(tip)
+                r[5].write(row.get('Para Birimi', ''))
+                r[6].write(format_int(row.get('Tutar', 0)))
+                r[7].write("")
+                r[8].write("")
+                r[9].write("")
+                if r[10].button("🗑️", key=f"dk_{row.iloc[0]}_{row.get('Aciklama','')}"):
+                    show_delete_modal(row)
 
     with col_side:
         st.markdown("### ➕ Yeni Kayıt")
