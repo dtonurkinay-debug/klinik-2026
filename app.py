@@ -986,7 +986,7 @@ if check_password():
                     cikis_try_kuru = kurlar.get(cikis_para, 1.0)
                     giris_try_kuru = kurlar.get(giris_para, 1.0)
                     default_kur = cikis_try_kuru / giris_try_kuru
-                    kur = st.number_input("Kur", min_value=0.0001, value=float(round(default_kur, 4)), format="%.4f", key="d_kur")
+                    kur = st.number_input("Kur", min_value=0.0001, value=float(round(default_kur, 4)), format="%.4f", key=f"d_kur_{cikis_para}_{giris_para}")
                 with g3:
                     giris_tutar = int(cikis_tutar * kur)
                     st.markdown(f"<div style='margin-top:28px; font-size:20px; font-weight:700; color:#27AE60;'>{format_int(giris_tutar)} {semboller[giris_para]}</div>", unsafe_allow_html=True)
