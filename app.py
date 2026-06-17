@@ -959,6 +959,7 @@ if check_password():
             st.session_state.show_doviz_modal = False
 
         if st.session_state.get("show_doviz_modal", False):
+            st.session_state.show_doviz_modal = False
             @st.dialog("💱 Döviz Dönüşümü")
             def doviz_modal():
                 net_curr_modal = calc_net_by_currency(secilen_ay_no)
