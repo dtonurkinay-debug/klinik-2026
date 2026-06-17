@@ -636,7 +636,23 @@ if check_password():
         df_onceki_aylar = df[df['Tarih_DT'].dt.month < secilen_ay_no].copy()
         onceki_gelir = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gelir"]['UPB_TRY'].sum()
         onceki_gider = df_onceki_aylar[df_onceki_aylar["Islem Turu"] == "Gider"]['UPB_TRY'].sum()
-        acilis_bakiye_ay = acilis_bakiye + onceki_gelir - onceki_gider
+        # Önceki aylardaki döviz dönüşümü etkisi (TRY karşılığı üzerinden)
+        df_onceki_konv = df_raw[
+            (df_raw["Islem Turu"] == "Döviz Dönüşümü") &
+            (df_raw["Silindi"] != "X") &
+            (df_raw['Tarih_DT'].dt.month < secilen_ay_no)
+        ].copy()
+        onceki_konv_giris = 0.0
+        onceki_konv_cikis = 0.0
+        if len(df_onceki_konv) > 0:
+            for _, krow in df_onceki_konv.iterrows():
+                kur_k = kurlar.get(krow['Para Birimi'], 1.0)
+                tutar_try = float(krow['Tutar']) * kur_k
+                if "KONV_GIRIS" in str(krow.get('Aciklama', '')):
+                    onceki_konv_giris += tutar_try
+                elif "KONV_CIKIS" in str(krow.get('Aciklama', '')):
+                    onceki_konv_cikis += tutar_try
+        acilis_bakiye_ay = acilis_bakiye + onceki_gelir - onceki_gider + onceki_konv_giris - onceki_konv_cikis
     
     # Sadece seçilen ayın gelir/gideri
     df_secilen_ay = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
@@ -675,6 +691,17 @@ if check_password():
                 gelir = df_onceki[(df_onceki["Islem Turu"] == "Gelir") & (df_onceki['Para Birimi'] == curr)]['Tutar'].sum()
                 gider = df_onceki[(df_onceki["Islem Turu"] == "Gider") & (df_onceki['Para Birimi'] == curr)]['Tutar'].sum()
                 currencies[curr] = acilis_base[curr] + gelir - gider
+            
+            # Önceki ayların döviz dönüşümü etkisi (para birimi bazında)
+            df_onceki_konv_curr = df_raw[
+                (df_raw["Islem Turu"] == "Döviz Dönüşümü") &
+                (df_raw["Silindi"] != "X") &
+                (df_raw['Tarih_DT'].dt.month < ay_no)
+            ].copy()
+            for curr in currencies.keys():
+                konv_giris = df_onceki_konv_curr[(df_onceki_konv_curr["Aciklama"].str.contains("KONV_GIRIS", na=False)) & (df_onceki_konv_curr['Para Birimi'] == curr)]['Tutar'].sum()
+                konv_cikis = df_onceki_konv_curr[(df_onceki_konv_curr["Aciklama"].str.contains("KONV_CIKIS", na=False)) & (df_onceki_konv_curr['Para Birimi'] == curr)]['Tutar'].sum()
+                currencies[curr] = currencies[curr] + konv_giris - konv_cikis
         
         return currencies
     
@@ -818,6 +845,16 @@ if check_password():
         st.markdown('<div style="margin: 8px 0;"></div>', unsafe_allow_html=True)
         
         df_display = df[df['Tarih_DT'].dt.month == secilen_ay_no].copy()
+
+        # Döviz dönüşümü satırlarını da listeye dahil et (header/grafiklere dahil edilmeden, sadece görünüm için)
+        df_konv_rows = df_raw[
+            (df_raw["Islem Turu"] == "Döviz Dönüşümü") &
+            (df_raw["Silindi"] != "X") &
+            (df_raw['Tarih_DT'].dt.month == secilen_ay_no)
+        ].copy()
+        if len(df_konv_rows) > 0:
+            df_display = pd.concat([df_display, df_konv_rows], ignore_index=False)
+        df_display = df_display.sort_values(by=df_display.columns[0], key=lambda s: pd.to_numeric(s, errors='coerce'))
         
         search_term = st.text_input("🔍 Hızlı Arama:", "", placeholder="Hasta adı, kategori veya tutar...")
         if search_term:
@@ -1073,55 +1110,38 @@ if check_password():
 
         # Satırları göster
         for _, row in df_display.iterrows():
+            is_doviz = row.get('Islem Turu') == "Döviz Dönüşümü"
             is_gelir = row.get('Islem Turu') == "Gelir"
-            badge_class = "gelir-badge" if is_gelir else "gider-badge"
             r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
             
             r[0].write(row.iloc[0])
             r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
-            r[2].markdown(f"<span class='{badge_class}'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
-            r[3].write(row.get('Hasta Adi', ''))
-            r[4].write(row.get('Kategori', ''))
-            r[5].write(row.get('Para Birimi', ''))
-            r[6].write(format_int(row.get('Tutar', 0)))
-            r[7].write(format_int(row.get('UPB_TRY', 0)))
-            r[8].write(row.get('Teknisyen', ''))
-            r[9].write(row.get('Aciklama', ''))
-            
-            btn_e, btn_d = r[10].columns(2)
-            if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
-                show_edit_modal(row)
-            if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
-                show_delete_modal(row)
 
-        # --- DÖVİZ DÖNÜŞÜMÜ SATIRLARI ---
-        df_konv_display = df_raw[
-            (df_raw["Islem Turu"] == "Döviz Dönüşümü") &
-            (df_raw["Silindi"] != "X") &
-            (df_raw['Tarih_DT'].dt.month == secilen_ay_no)
-        ].copy()
-
-        if len(df_konv_display) > 0:
-            st.markdown("---")
-            st.markdown("#### 💱 Döviz Dönüşümleri")
-            kd = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
-            for col, h in zip(kd, ["ID", "Tarih", "Tür", "Hasta Adı", "Kat.", "Döv", "Tutar", "UPB", "Tekn.", "Açıklama", "İşlem"]):
-                col.markdown(f"**{h}**")
-            st.write("---")
-            for _, row in df_konv_display.iterrows():
+            if is_doviz:
                 tip = "🔴 Çıkış" if "KONV_CIKIS" in str(row.get('Aciklama', '')) else "🟢 Giriş"
-                r = st.columns([0.4, 0.9, 0.7, 1.2, 0.8, 0.5, 0.8, 0.8, 0.7, 1.0, 0.8])
-                r[0].write(row.iloc[0])
-                r[1].write(row['Tarih_DT'].strftime('%d.%m.%Y') if pd.notnull(row['Tarih_DT']) else "")
                 r[2].markdown("<span class='doviz-badge'>Döviz</span>", unsafe_allow_html=True)
                 r[3].write("")
                 r[4].write(tip)
-                r[5].write(row.get('Para Birimi', ''))
-                r[6].write(format_int(row.get('Tutar', 0)))
-                r[7].write("")
-                r[8].write("")
-                r[9].write("")
-                if r[10].button("🗑️", key=f"dk_{row.iloc[0]}_{row.get('Aciklama','')}"):
+            else:
+                badge_class = "gelir-badge" if is_gelir else "gider-badge"
+                r[2].markdown(f"<span class='{badge_class}'>{row.get('Islem Turu', '')}</span>", unsafe_allow_html=True)
+                r[3].write(row.get('Hasta Adi', ''))
+                r[4].write(row.get('Kategori', ''))
+
+            r[5].write(row.get('Para Birimi', ''))
+            r[6].write(format_int(row.get('Tutar', 0)))
+            r[7].write(format_int(row.get('UPB_TRY', 0)) if not is_doviz else "")
+            r[8].write(row.get('Teknisyen', '') if not is_doviz else "")
+            r[9].write(row.get('Aciklama', '') if not is_doviz else "")
+            
+            if is_doviz:
+                if r[10].button("🗑️", key=f"dk_{row.iloc[0]}"):
+                    show_delete_modal(row)
+            else:
+                btn_e, btn_d = r[10].columns(2)
+                if btn_e.button("✏️", key=f"e_{row.iloc[0]}"):
+                    show_edit_modal(row)
+                if btn_d.button("🗑️", key=f"d_{row.iloc[0]}"):
                     show_delete_modal(row)
 
     with col_side:
